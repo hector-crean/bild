@@ -1,0 +1,19 @@
+[package]
+name = "bild_core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+rayon = "1.8"
+wgpu = "0.19"
+reqwest = { workspace = true }
+num_cpus = "1.16"
+serde_json = { workspace = true }
