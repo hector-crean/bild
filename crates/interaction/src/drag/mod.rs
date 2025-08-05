@@ -1,14 +1,12 @@
 use bevy::prelude::*;
 use camera::controller::CameraSettings;
 
+use bevy::ecs::error::BevyError;
 
 use std::f32::INFINITY;
 
 use bevy::prelude::*;
 use bitflags::bitflags;
-
-
-
 
 bitflags! {
     // Attributes can be applied to flags types
@@ -21,23 +19,33 @@ bitflags! {
     }
 }
 
-
-
 #[derive(Resource)]
 pub struct TransformControllerSettings {
     pub enabled: bool,
     pub grid_snapping: Option<Vec3>,
-    pub translation_constraints: Option<BVec3>, 
-    pub rotation_constraints: Option<Vec3>,    // Constrain rotations to certain axes
-    pub scale_constraints: Option<Vec3>,       // Constrain scaling behavior
+    pub translation_constraints: Option<BVec3>,
+    pub rotation_constraints: Option<Vec3>, // Constrain rotations to certain axes
+    pub scale_constraints: Option<Vec3>,    // Constrain scaling behavior
 }
 impl Default for TransformControllerSettings {
     fn default() -> Self {
-        Self { enabled: true, grid_snapping: Some(Vec3 { x: 1.0, y: 1.0, z: 1.0 }), translation_constraints: Some(BVec3 { x: true, y: true, z: true}), rotation_constraints: None, scale_constraints: None }
+        Self {
+            enabled: true,
+            grid_snapping: Some(Vec3 {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0,
+            }),
+            translation_constraints: Some(BVec3 {
+                x: true,
+                y: true,
+                z: true,
+            }),
+            rotation_constraints: None,
+            scale_constraints: None,
+        }
     }
 }
-
-
 
 #[derive(Component)]
 pub struct TransformBounds {
@@ -47,19 +55,23 @@ pub struct TransformBounds {
 
 impl Default for TransformBounds {
     fn default() -> Self {
-        Self { min: Vec3::new(-INFINITY, -INFINITY, -INFINITY), max: Vec3::new(INFINITY, INFINITY, INFINITY) }
+        Self {
+            min: Vec3::new(-INFINITY, -INFINITY, -INFINITY),
+            max: Vec3::new(INFINITY, INFINITY, INFINITY),
+        }
     }
 }
 
 impl TransformBounds {
     pub fn contains(&self, point: Vec3) -> bool {
-        point.x >= self.min.x && point.x <= self.max.x &&
-        point.y >= self.min.y && point.y <= self.max.y &&
-        point.z >= self.min.z && point.z <= self.max.z
+        point.x >= self.min.x
+            && point.x <= self.max.x
+            && point.y >= self.min.y
+            && point.y <= self.max.y
+            && point.z >= self.min.z
+            && point.z <= self.max.z
     }
 }
-
-
 
 #[derive(Component)]
 #[require(Transform, TransformBounds)]
@@ -79,11 +91,6 @@ impl Default for TransformController {
         }
     }
 }
-
-
-
-
-
 
 /// A small struct that holds camera-related transforms
 /// for converting between world, view, NDC, etc.
@@ -119,11 +126,7 @@ impl CameraRayHelper {
 
     /// Convert a 2D cursor position into a world-space position on a “view plane”
     /// given a reference world-position (`p_world`).
-    pub fn world_position_on_view_plane(
-        &self,
-        p_world: Vec3,
-        cursor_pos: Vec2,
-    ) -> Vec3 {
+    pub fn world_position_on_view_plane(&self, p_world: Vec3, cursor_pos: Vec2) -> Vec3 {
         // 1) transform p_world into view space
         let p_view = self.inv_view_mat.transform_point3(p_world);
 
@@ -160,9 +163,7 @@ pub fn compute_intersection_view(p_view_z: f32, ray_dir_view: Vec3) -> Vec3 {
     (p_view_z / ray_dir_view.z) * ray_dir_view
 }
 
-
-#[derive(Component)]
-#[derive(Default)]
+#[derive(Component, Default)]
 pub struct Draggable {
     dragging: bool,
     drag_start_entity_position: Option<Vec3>,
@@ -179,27 +180,28 @@ impl Draggable {
     fn cursor_offset(&self) -> Vec3 {
         self.drag_start_entity_position.unwrap() - self.drag_start_pointer_position.unwrap()
     }
-      // Optionally, a method to do a standard “drag translation”:
-      pub fn compute_drag_translation(
+    // Optionally, a method to do a standard “drag translation”:
+    pub fn compute_drag_translation(
         &self,
         cursor_pos: Vec2,
         camera_ray: &CameraRayHelper,
     ) -> Option<Vec3> {
-        let Some(entity_pos) = self.drag_start_entity_position else { return None; };
-        let Some(start_pointer_pos) = self.drag_start_pointer_position else { return None; };
+        let Some(entity_pos) = self.drag_start_entity_position else {
+            return None;
+        };
+        let Some(start_pointer_pos) = self.drag_start_pointer_position else {
+            return None;
+        };
 
         // The “plane intersection” at the drag-start pointer pos vs. new pointer pos
-        let new_pos = camera_ray.world_position_on_view_plane(
-            entity_pos,
-            cursor_pos,
-        ) + self.cursor_offset();
+        let new_pos =
+            camera_ray.world_position_on_view_plane(entity_pos, cursor_pos) + self.cursor_offset();
 
         Some(new_pos)
     }
 }
 #[derive(Default)]
 pub struct DragTransformPlugin<T: CameraSettings>(pub T);
-
 
 impl<T: CameraSettings + Send + Sync + 'static> Plugin for DragTransformPlugin<T> {
     fn build(&self, app: &mut App) {
@@ -217,57 +219,52 @@ impl<T: CameraSettings + Send + Sync + 'static> DragTransformPlugin<T> {
     }
     fn on_drag_start(
         drag_start: On<Pointer<DragStart>>,
-        commands: Commands,
         mut draggable_query: Query<(Entity, &mut Draggable, &Transform)>,
         mut camera_controller: ResMut<T>,
+    ) -> Result<(), BevyError> {
+        let (entity, mut draggable, transform) = draggable_query.get_mut(drag_start.target())?;
 
-    ) {
-        if let Ok((entity, mut draggable, transform)) = draggable_query.get_mut(drag_start.target())
-        {
-            // commands.entity(entity).insert(NoDeselect);
-            draggable.drag_start_entity_position = Some(transform.translation);
-            draggable.drag_start_pointer_position = drag_start.hit.position;
+        // commands.entity(entity).insert(NoDeselect);
+        draggable.drag_start_entity_position = Some(transform.translation);
+        draggable.drag_start_pointer_position = drag_start.hit.position;
 
-            camera_controller.lock();
+        camera_controller.lock();
 
-        }
+        Ok(())
     }
     fn on_drag(
         drag: On<Pointer<Drag>>,
         mut draggable_query: Query<(Entity, &mut Draggable, &mut Transform)>,
         camera_query: Query<(&GlobalTransform, &Camera)>,
-    ) {
-        let Ok((camera_transform, camera)) = camera_query.single() else {
-            return;
-        };
-        let Ok((entity, draggable, mut transform)) = draggable_query.get_mut(drag.target()) else {
-            return;
-        };
+    ) -> Result<(), BevyError> {
+        let (camera_transform, camera) = camera_query.single()?;
+
+        let (entity, draggable, mut transform) = draggable_query.get_mut(drag.target())?;
 
         let Some(camera_ray) = CameraRayHelper::from_camera(camera, camera_transform) else {
-            return;
+            return Err(BevyError::from("No camera ray"));
         };
 
-        if let Some(new_translation) = draggable.compute_drag_translation(
-            drag.pointer_location.position,
-            &camera_ray
-        ) {
+        if let Some(new_translation) =
+            draggable.compute_drag_translation(drag.pointer_location.position, &camera_ray)
+        {
             let translation = new_translation;
             transform.translation = translation;
         }
+
+        Ok(())
     }
     fn on_drag_end(
         drag_end: On<Pointer<DragEnd>>,
         mut draggable_query: Query<(Entity, &mut Draggable, &mut Transform)>,
         mut camera_controller: ResMut<T>,
-    ) {
-        let Ok((entity, mut draggable, transform)) = draggable_query.get_mut(drag_end.target()) else {
-            return;
-        };
+    ) -> Result<(), BevyError> {
+        let (entity, mut draggable, transform) = draggable_query.get_mut(drag_end.target())?;
+
         draggable.dragging = false;
 
-        // commands.entity(entity).remove::<NoDeselect>();
-
         camera_controller.unlock();
+
+        Ok(())
     }
 }
