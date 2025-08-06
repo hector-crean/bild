@@ -9,7 +9,6 @@ license.workspace = true
 camera = { workspace = true }
 picking = { workspace = true }
 meshable = { workspace = true }
-material = { workspace = true }
 duplex = { workspace = true }
 once_cell = { workspace = true }
 
@@ -26,7 +25,7 @@ block3d_core = { workspace = true }
 block3d_algorithm = { workspace = true }
 layer = { workspace = true }
 bild_core = { workspace = true }
-bevy_polyline = { workspace = true }
 leafwing-input-manager = { workspace = true }
 interaction = { workspace = true }
 bitflags = { workspace = true }
+geometry = { workspace = true }

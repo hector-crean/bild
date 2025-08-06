@@ -12,7 +12,13 @@ pub struct CommentToolPlugin;
 
 impl Plugin for CommentToolPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((WorldspaceUiNodePlugin::<CommentUi>::new(), CommentUiPlugin))
+        if !app.is_plugin_added::<WorldspaceUiNodePlugin<CommentUi>>() {
+            app.add_plugins(WorldspaceUiNodePlugin::<CommentUi>::new());
+        }
+        if !app.is_plugin_added::<CommentUiPlugin>() {
+            info!("Add CommentUiPlugin");
+        }
+        app
             .insert_resource(SelectedComment::default())
             .init_state::<CommentToolState>()
             .add_event::<CommentToolEvent>()

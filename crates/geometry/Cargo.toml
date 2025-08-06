@@ -1,0 +1,25 @@
+[package]
+edition = "2024"
+name = "geometry"
+version = "0.1.0"
+description = "Geometric primitives extending Bevy's shape system"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ForesightMiningSoftwareCorporation/bild"
+homepage = "https://github.com/ForesightMiningSoftwareCorporation/bild"
+documentation = "https://docs.rs/geometry"
+keywords = ["bevy", "geometry", "primitives", "shapes", "2d", "3d"]
+categories = ["rendering", "game-development"]
+authors = [
+    "Hector Crean <hectorcrean@gmail.com>",
+]
+
+[dependencies]
+bevy = { workspace = true }
+rand = { version = "0.8", optional = true }
+bitflags = { workspace = true }
+bytemuck = { workspace = true }
+
+[features]
+default = ["rand"]
+# Enable random generation utilities (for examples and testing)
+random = ["rand"] 

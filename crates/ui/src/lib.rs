@@ -14,5 +14,6 @@ impl PluginGroup for UiPlugin {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(CommentUiPlugin)
+
     }
 }

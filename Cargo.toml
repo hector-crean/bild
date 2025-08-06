@@ -19,16 +19,16 @@ bild_core = { path = "crates/bild_core" }
 camera = { path = "crates/camera" }
 picking = { path = "crates/picking" }
 meshable = { path = "crates/meshable" }
-material = { path = "crates/material" }
 duplex = { path = "crates/duplex" }
 block3d_core = { path = "crates/block3d_core" }
 block3d_algorithm = { path = "crates/block3d_algorithm" }
 ui = { path = "crates/ui" }
 ui_3d = { path = "crates/ui_3d" }
-bevy_polyline = { path = "crates/bevy_polyline" }
+geometry = { path = "crates/geometry" }
 compute = { path = "crates/compute" }
 layer = { path = "crates/layer" }
 interaction = { path = "crates/interaction" }
+render = { path = "crates/render" }
 
 
 bevy = { path = "../bevy", features = ["shader_format_wesl"] }

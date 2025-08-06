@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use camera::controller::{pan_orbit_camera::{OrbitCameraController, OrbitCameraControllerPlugin}, CameraSettings};
 use camera::markers::MainCamera;
 use duplex::event_channel::GlobalEventChannel;
+use geometry::representation::polyline::PolylinePlugin;
 use once_cell::sync::Lazy;
 use picking::double_click::DoubleClickPlugin;
 use ui_3d::Ui3dPlugin;
@@ -72,6 +73,7 @@ impl Plugin for AppPlugin {
            .add_plugins((
                 duplex_plugin,
                 OrbitCameraControllerPlugin::<CameraSettingsImpl>::default(),
+                PolylinePlugin,
                 ToolPlugin,
                 MeshPickingPlugin,
                 DoubleClickPlugin,
@@ -99,10 +101,10 @@ impl Plugin for AppPlugin {
 impl AppPlugin {
     fn configure_window() -> Window {
         Window {
-            title: "Crayon".into(),
-            name: Some("bevy.app".into()), 
-            canvas: Some("#crayon-canvas".into()),
-            resolution: (500., 300.).into(),
+            title: "bild".into(),
+            name: Some("bild.app".into()), 
+            canvas: Some("#bild-canvas".into()),
+            resolution: (1920., 1080.).into(),
             present_mode: PresentMode::AutoVsync,
             fit_canvas_to_parent: true,
             prevent_default_event_handling: true,
@@ -118,7 +120,7 @@ impl AppPlugin {
 
     fn setup_camera(mut commands: Commands) {
         let controller = OrbitCameraController::default();
-        let transform = controller.generate_camera_transform();
+        let transform = controller.generate_transform();
 
         // Add camera
         commands.spawn((

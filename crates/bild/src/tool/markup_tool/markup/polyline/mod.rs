@@ -1,7 +1,7 @@
 use bevy::{color::palettes, prelude::*};
-use bevy_polyline::prelude::{Polyline, PolylineBundle, PolylineHandle, PolylineMaterial, PolylineMaterialHandle};
 use picking::double_click::DoubleClick;
 use std::time::Duration;
+use geometry::representation::polyline::prelude::*;
 
 use crate::tool::markup_tool::MarkupToolState;
 
