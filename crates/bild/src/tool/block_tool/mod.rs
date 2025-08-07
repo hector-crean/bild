@@ -299,45 +299,50 @@ impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> BlockToolPlugin
 
         event_wtr.write(OpenRadialMenu {
             items: BlockKind::iter().map(|kind| match kind {
-                BlockKind::Window => RadialItemData {
-                    icon: "icons/window_48px.png".to_string(),
+                BlockKind::Substrate => RadialItemData {
+                    icon: "icons/substrate_48px.png".to_string(),
                     color: palettes::tailwind::BLUE_400.into(),
-                    label: "Window".to_string(),
+                    label: "Substrate".to_string(),
                 },
-                BlockKind::Door => RadialItemData {
-                    icon: "icons/door_48px.png".to_string(),
+                BlockKind::SiliconDie => RadialItemData {
+                    icon: "icons/chip_48px.png".to_string(),
                     color: palettes::tailwind::GREEN_400.into(),
-                    label: "Door".to_string(),
+                    label: "Silicon Die".to_string(),
                 },
-                BlockKind::Wall => RadialItemData {
-                    icon: "icons/wall_48px.png".to_string(),
+                BlockKind::HeatSpreader => RadialItemData {
+                    icon: "icons/heat_spreader_48px.png".to_string(),
                     color: palettes::tailwind::RED_400.into(),
-                    label: "Wall".to_string(),
+                    label: "Heat Spreader".to_string(),
                 },
-                BlockKind::Floor => RadialItemData {
-                    icon: "icons/floor_48px.png".to_string(),
+                BlockKind::ThermalInterfaceMaterial => RadialItemData {
+                    icon: "icons/tim_48px.png".to_string(),
                     color: palettes::tailwind::YELLOW_400.into(),
-                    label: "Floor".to_string(),
+                    label: "Thermal Interface Material".to_string(),
                 },
-                BlockKind::Ceiling => RadialItemData {
-                    icon: "icons/ceiling_48px.png".to_string(),
+                BlockKind::HeatSink => RadialItemData {
+                    icon: "icons/heat_sink_48px.png".to_string(),
                     color: palettes::tailwind::PURPLE_400.into(),
-                    label: "Ceiling".to_string(),
+                    label: "Heat Sink".to_string(),
                 },
-                BlockKind::Column => RadialItemData {
-                    icon: "icons/column_48px.png".to_string(),
+                    BlockKind::Interconnect => RadialItemData {
+                    icon: "icons/interconnect_48px.png".to_string(),
                     color: palettes::tailwind::ORANGE_400.into(),
-                    label: "Column".to_string(),
+                    label: "Interconnect".to_string(),
                 },
-                BlockKind::Stairs => RadialItemData {
-                    icon: "icons/stairs_48px.png".to_string(),
+                BlockKind::CircuitBoard => RadialItemData {
+                    icon: "icons/pcb_48px.png".to_string(),
                     color: palettes::tailwind::INDIGO_400.into(),
-                    label: "Stairs".to_string(),
+                    label: "Circuit Board".to_string(),
                 },
-                BlockKind::Void => RadialItemData {
-                    icon: "icons/void_48px.png".to_string(),
+                BlockKind::Underfill => RadialItemData {
+                    icon: "icons/underfill_48px.png".to_string(),
                     color: palettes::tailwind::RED_400.into(),
-                    label: "Void".to_string(),
+                    label: "Underfill".to_string(),
+                },
+                BlockKind::Air => RadialItemData {
+                    icon: "icons/air_48px.png".to_string(),
+                    color: palettes::tailwind::GRAY_400.into(),
+                    label: "Air".to_string(),
                 },
             }).collect(),
             position: RadialMenuPosition::WorldSpace(world_position),

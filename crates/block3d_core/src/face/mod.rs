@@ -9,11 +9,13 @@ impl Face {
     pub fn new(oriented_interface: OrientedInterface) -> Self {
         Self { oriented_interface }
     }
+    
     pub fn oriented_interface(&self) -> OrientedInterface {
         self.oriented_interface
     }
 
     pub fn can_connect_to(&self, other: &Self) -> bool {
-        todo!()
+        // Use the existing connection system to check if these interfaces can connect
+        (self.oriented_interface + other.oriented_interface).is_some()
     }
 }

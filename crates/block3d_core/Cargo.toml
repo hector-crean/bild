@@ -11,3 +11,7 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 uom = { workspace = true }
 strum = { workspace = true }
+# Using Bevy for mathematics
+bevy = { workspace = true }
+# Random number generation and distributions
+rand = "0.8"

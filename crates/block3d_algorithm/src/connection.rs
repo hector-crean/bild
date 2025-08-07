@@ -25,13 +25,7 @@ impl ConnectionPoint {
     
     /// Checks if this connection point is compatible with a given interface
     pub fn is_compatible_with(&self, other_interface: &OrientedInterface) -> bool {
-        // Basic compatibility check - implement detailed rules based on specific interfaces
-        match (&self.interface.interface, &other_interface.interface) {
-            (block3d_core::connection::ConnectorInterface::Stud, block3d_core::connection::ConnectorInterface::Tube) => true,
-            (block3d_core::connection::ConnectorInterface::Tube, block3d_core::connection::ConnectorInterface::Stud) => true,
-            // Add other compatible pairs as needed
-            _ => false,
-        }
+       true
     }
     
     /// Gets the world position of this connection point based on block position and orientation

@@ -4,7 +4,7 @@ pub mod markup_tool;
 pub mod block_tool;
 use bevy::prelude::*;
 
-use block3d_core::block::lego_block::LegoBlock;
+use block3d_core::block::AnalogComponent;
 use block_tool::{BlockToolPlugin, BlockToolState};
 use comment_tool::{ CommentToolPlugin, CommentToolState};
 use layer::Layer;
@@ -90,7 +90,7 @@ impl Plugin for ToolPlugin {
             .add_sub_state::<TransformToolState>()
             .add_sub_state::<MarkupToolState>()
             .add_sub_state::<BlockToolState>()
-            .add_plugins((CommentToolPlugin, TransformToolPlugin::<CameraSettingsImpl>::default(), MarkupToolPlugin, BlockToolPlugin::<LegoBlock, GroundPlane>::default()))
+            .add_plugins((CommentToolPlugin, TransformToolPlugin::<CameraSettingsImpl>::default(), MarkupToolPlugin, BlockToolPlugin::<AnalogComponent, GroundPlane>::default()))
             .add_systems(
                 Update,
                 (

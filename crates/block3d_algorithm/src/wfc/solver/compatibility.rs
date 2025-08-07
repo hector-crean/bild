@@ -17,31 +17,6 @@ impl<T: Block3DLike> CompatibilityRule<T> {
         Self { check, description }
     }
     
-    /// Creates a compatibility rule that checks if two blocks can connect properly
-    pub fn lego_connectivity() -> Self {
-        let check = Box::new(|state1: &NodeState<T>, state2: &NodeState<T>| {
-            // Simple example: check if the faces can connect
-            // In a real implementation, you would check specific connection types
-            // based on the block faces and their orientation
-            
-            // For instance, check if state1 has a stud and state2 has a tube
-            let state1_has_stud = state1.block.faces().any(|face| {
-                matches!(face.oriented_interface().interface, ConnectorInterface::Stud)
-            });
-            
-            let state2_has_tube = state2.block.faces().any(|face| {
-                matches!(face.oriented_interface().interface, ConnectorInterface::Tube)
-            });
-            
-            // Check orientation compatibility (simplified)
-            let orientation_compatible = (state1.orientation as u8 + state2.orientation as u8) % 4 == 0;
-            
-            // Simple compatibility check
-            (state1_has_stud && state2_has_tube) && orientation_compatible
-        });
-        
-        Self::new(check, Some("Lego block connectivity rule".to_string()))
-    }
 }
 
 

@@ -54,20 +54,7 @@ impl<T: Block3DLike> Heuristic<T> for WeightedRandomHeuristic {
         let mut rng = rand::thread_rng();
         
         // Assign weights to different block types
-        let weights: Vec<f32> = valid_states.iter().map(|state| {
-            match state.block.block_kind() {
-                // Prioritize structural elements
-                BlockKind::Wall => 10.0,
-                BlockKind::Floor => 8.0,
-                
-                // Special elements are less common
-                BlockKind::Door => 3.0,  
-                BlockKind::Window => 3.0,
-                
-                // Other block types
-                _ => 5.0,
-            }
-        }).collect();
+        let weights: Vec<f32> = valid_states.iter().map(|state| state.block.ranking()).collect();
         
         // Create a weighted distribution
         if let Ok(dist) = WeightedIndex::new(&weights) {
