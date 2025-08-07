@@ -2,6 +2,7 @@ use crate::face::Face;
 use super::{Block3DLike, MaterialProperties};
 use serde::{Serialize, Deserialize};
 use bevy::prelude::*;
+use strum::EnumIter;
 use uom::si::f64::*;
 use uom::si::{
     electric_potential::volt,
@@ -510,7 +511,7 @@ impl OpAmp {
 // ============================================================================
 
 /// Unified enum containing all analog circuit components for use with WFC solver
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, EnumIter)]
 pub enum AnalogComponent {
     Resistor(Resistor),
     Capacitor(Capacitor),
@@ -524,6 +525,8 @@ impl Default for AnalogComponent {
         Self::Resistor(Resistor::default())
     }
 }
+
+
 
 impl Block3DLike for AnalogComponent {
     fn size(&self) -> (u32, u32, u32) {
@@ -699,3 +702,23 @@ impl std::hash::Hash for AnalogComponent {
         }
     }
 } 
+
+
+
+
+
+
+
+
+// impl Into<RadialItemData> for AnalogComponent {
+//     fn into(self) -> RadialItemData {
+//         match self {
+//             AnalogComponent::Resistor(r) => RadialItemData { icon: "icons/resistor_48px.png".to_string(), color: palettes::tailwind::AMBER_400.into(), label: r.symbol()},
+//             AnalogComponent::Capacitor(c) => RadialItemData { icon: "icons/capacitor_48px.png".to_string(), color: palettes::tailwind::CYAN_400.into(), label: c.symbol() },
+//             AnalogComponent::Inductor(l) => RadialItemData { icon: "icons/inductor_48px.png".to_string(), color: palettes::tailwind::EMERALD_400.into(), label: l.symbol() },
+//             AnalogComponent::Diode(d) => RadialItemData { icon: "icons/diode_48px.png".to_string(), color: palettes::tailwind::ROSE_400.into(), label: d.symbol() },
+//             AnalogComponent::OpAmp(o) => RadialItemData { icon: "icons/opamp_48px.png".to_string(), color: palettes::tailwind::VIOLET_400.into(), label: o.symbol() },
+//             _ => RadialItemData::default(),
+//         }
+//     }
+// }

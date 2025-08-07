@@ -3,10 +3,12 @@ use std::marker::PhantomData;
 use camera::raycast::CameraRaycast;
 use bevy::window::PrimaryWindow;
 use bevy::{color::palettes, prelude::*};
-use block3d_core::block::{Block3DLike, BlockKind};
+use block3d_core::block::{Block3DLike, AnalogComponent};
+use interaction::selection::Selectable;
 use ui_3d::radial_menu::{
-    CloseRadialMenu, OpenRadialMenu, RadialItemData, RadialMenuItemDataLike, RadialMenuPosition
+    CloseRadialMenu, OpenRadialMenu, RadialItemData, RadialMenuPosition, RadialMenuSelection
 };
+use crate::tool::{RadialMenuItem, ToRadialItem};
 use strum::IntoEnumIterator;
 use layer::Layer;
 
@@ -38,8 +40,8 @@ pub enum BlockUiState {
 }
 
 #[derive(Event, BufferedEvent)]
-pub enum BlockToolEvent {
-    Adding { position: Vec3, rotation: Quat },
+pub enum BlockToolEvent <T: Block3DLike>{
+    Adding { position: Vec3, rotation: Quat, block: T },
 }
 
 
@@ -47,16 +49,16 @@ pub enum BlockToolEvent {
 
 
 #[derive(Component, Default)]
-pub struct BlockToolPlugin<T: Block3DLike + Send + Sync + 'static, L: Layer> {
+pub struct BlockToolPlugin<T: Block3DLike + ToRadialItem + IntoEnumIterator + Send + Sync + 'static, L: Layer> {
     phantom_block: PhantomData<T>,
     phantom_layer: PhantomData<L>,
 }
 
-impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> Plugin for BlockToolPlugin<T, L> {
+impl<T: Block3DLike + ToRadialItem + IntoEnumIterator + Send + Sync + 'static + Default, L: Layer> Plugin for BlockToolPlugin<T, L> {
     fn build(&self, app: &mut App) {
         app
             .init_state::<BlockToolState>()
-            .add_event::<BlockToolEvent>()
+            .add_event::<BlockToolEvent<T>>()
             .add_systems(OnEnter(ToolState::Block), Self::setup_draft_block)
             .add_systems(OnExit(ToolState::Block), Self::despawn_draft_block)
             .add_systems(
@@ -72,6 +74,7 @@ impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> Plugin for Bloc
                 (
                     Self::update_preview_position.run_if(in_state(BlockToolState::Previewing)),
                     Self::handle_preview_click.run_if(in_state(BlockToolState::Previewing)),
+                    Self::handle_radial_menu_selection.run_if(in_state(BlockToolState::ChooseBlockKind)),
                     Self::handle_adjusting.run_if(in_state(BlockToolState::Adjusting)),
                     Self::handle_confirmation.run_if(in_state(BlockToolState::Confirmed)),
                     Self::handle_cancellation.run_if(in_state(BlockToolState::Cancelled)),
@@ -83,7 +86,7 @@ impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> Plugin for Bloc
     }
 }
 
-impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> BlockToolPlugin<T, L> {
+impl<T: Block3DLike + ToRadialItem + IntoEnumIterator + Send + Sync + 'static + Default, L: Layer> BlockToolPlugin<T, L> {
     fn handle_state_transition(
         mut state_reader: EventReader<StateTransitionEvent<BlockToolState>>,
     ) {
@@ -151,32 +154,52 @@ impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> BlockToolPlugin
         }
     }
 
+    fn handle_radial_menu_selection(
+        mut selection_events: EventReader<RadialMenuSelection>,
+        mut next_state: ResMut<NextState<BlockToolState>>,
+        mut commands: Commands,
+        mut query: Query<(Entity, &mut Transform, &BlockUiState)>,
+    ) {
+        for _selection in selection_events.read() {
+            // User selected a block type, transition to adjusting mode
+            next_state.set(BlockToolState::Adjusting);
+            
+            // Update the preview block appearance
+            for (entity, _transform, block_state) in query.iter_mut() {
+                if matches!(block_state, BlockUiState::Draft) {
+                    // Could update visual appearance here based on selection
+                    info!("Block type selected, entering adjustment mode");
+                }
+            }
+        }
+    }
+
     fn handle_adjusting(
         keyboard_input: Res<ButtonInput<KeyCode>>,
         mouse_input: Res<ButtonInput<MouseButton>>,
-        next_state: ResMut<NextState<BlockToolState>>,
+        mut next_state: ResMut<NextState<BlockToolState>>,
         mut query: Query<(&mut Transform, &BlockUiState)>,
     ) {
         // Handle rotation with R key
         if keyboard_input.just_pressed(KeyCode::KeyR) {
-            for (mut transform, _) in query.iter_mut() {
-                transform.rotate_local_y(90f32.to_radians());
+            for (mut transform, block_state) in query.iter_mut() {
+                if matches!(block_state, BlockUiState::Draft) {
+                    transform.rotate_local_y(90f32.to_radians());
+                }
             }
         }
 
-        // Confirm placement with Enter or double-click
-        // if keyboard_input.just_pressed(KeyCode::Enter)
-        //     || (mouse_input.just_pressed(MouseButton::Left)
-        //         && mouse_input.press_time(MouseButton::Left).unwrap() < 0.3) {
-        //     next_state.set(BlockToolState::Confirmed);
-        // }
+        // Confirm placement with Enter or left click
+        if keyboard_input.just_pressed(KeyCode::Enter) || mouse_input.just_pressed(MouseButton::Left) {
+            next_state.set(BlockToolState::Confirmed);
+        }
     }
 
     fn handle_confirmation(
         mut commands: Commands,
         mut next_state_tool: ResMut<NextState<ToolState>>,
         query: Query<(Entity, &Transform, &BlockUiState)>,
-        mut block_events: EventWriter<BlockToolEvent>,
+        mut block_events: EventWriter<BlockToolEvent<T>>,
     ) {
         for (entity, transform, state) in query.iter() {
             if matches!(state, BlockUiState::Draft) {
@@ -184,6 +207,7 @@ impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> BlockToolPlugin
                 block_events.write(BlockToolEvent::Adding {
                     position: transform.translation,
                     rotation: transform.rotation,
+                    block: T::default(),
                 });
 
                 // Update the block to final state
@@ -245,7 +269,7 @@ impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> BlockToolPlugin
         for (entity, mut transform, block_state) in preview_query.iter_mut() {
             match block_state {
                 BlockUiState::Draft => {
-                    transform.translation = point;
+                    transform.translation = point + Vec3::Y * 0.5;
                 }
                 BlockUiState::Final => {}
             }
@@ -298,53 +322,7 @@ impl<T: Block3DLike + Send + Sync + 'static + Default, L: Layer> BlockToolPlugin
         };
 
         event_wtr.write(OpenRadialMenu {
-            items: BlockKind::iter().map(|kind| match kind {
-                BlockKind::Substrate => RadialItemData {
-                    icon: "icons/substrate_48px.png".to_string(),
-                    color: palettes::tailwind::BLUE_400.into(),
-                    label: "Substrate".to_string(),
-                },
-                BlockKind::SiliconDie => RadialItemData {
-                    icon: "icons/chip_48px.png".to_string(),
-                    color: palettes::tailwind::GREEN_400.into(),
-                    label: "Silicon Die".to_string(),
-                },
-                BlockKind::HeatSpreader => RadialItemData {
-                    icon: "icons/heat_spreader_48px.png".to_string(),
-                    color: palettes::tailwind::RED_400.into(),
-                    label: "Heat Spreader".to_string(),
-                },
-                BlockKind::ThermalInterfaceMaterial => RadialItemData {
-                    icon: "icons/tim_48px.png".to_string(),
-                    color: palettes::tailwind::YELLOW_400.into(),
-                    label: "Thermal Interface Material".to_string(),
-                },
-                BlockKind::HeatSink => RadialItemData {
-                    icon: "icons/heat_sink_48px.png".to_string(),
-                    color: palettes::tailwind::PURPLE_400.into(),
-                    label: "Heat Sink".to_string(),
-                },
-                    BlockKind::Interconnect => RadialItemData {
-                    icon: "icons/interconnect_48px.png".to_string(),
-                    color: palettes::tailwind::ORANGE_400.into(),
-                    label: "Interconnect".to_string(),
-                },
-                BlockKind::CircuitBoard => RadialItemData {
-                    icon: "icons/pcb_48px.png".to_string(),
-                    color: palettes::tailwind::INDIGO_400.into(),
-                    label: "Circuit Board".to_string(),
-                },
-                BlockKind::Underfill => RadialItemData {
-                    icon: "icons/underfill_48px.png".to_string(),
-                    color: palettes::tailwind::RED_400.into(),
-                    label: "Underfill".to_string(),
-                },
-                BlockKind::Air => RadialItemData {
-                    icon: "icons/air_48px.png".to_string(),
-                    color: palettes::tailwind::GRAY_400.into(),
-                    label: "Air".to_string(),
-                },
-            }).collect(),
+                items: T::iter().map(|component| RadialMenuItem(component).into()).collect(),
             position: RadialMenuPosition::WorldSpace(world_position),
         });
     }

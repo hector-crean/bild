@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use rand::{Rng, distributions::WeightedIndex, prelude::Distribution};
-use block3d_core::block::{Block3DLike, BlockKind};
+use block3d_core::block::{Block3DLike};
 use petgraph::graph::NodeIndex;
 use crate::wfc::solver::state::NodeState;
 use super::Heuristic;

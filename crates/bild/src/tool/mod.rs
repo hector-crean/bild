@@ -1,37 +1,21 @@
-pub mod comment_tool;
-pub mod transform_tool;
-pub mod markup_tool;
 pub mod block_tool;
-use bevy::prelude::*;
+pub mod comment_tool;
+pub mod markup_tool;
+pub mod transform_tool;
+use bevy::{color::palettes, prelude::*};
 
-use block3d_core::block::AnalogComponent;
 use block_tool::{BlockToolPlugin, BlockToolState};
-use comment_tool::{ CommentToolPlugin, CommentToolState};
+use block3d_core::block::{AnalogComponent, Block3DLike};
+use comment_tool::{CommentToolPlugin, CommentToolState};
 use layer::Layer;
 use markup_tool::{MarkupToolPlugin, MarkupToolState};
-use transform_tool::{TransformToolPlugin, TransformToolState};
 use serde::{Deserialize, Serialize};
+use transform_tool::{TransformToolPlugin, TransformToolState};
 use ts_rs::TS;
 use ui::toolbar::ToolbarState;
+use ui_3d::radial_menu::RadialItemData;
 
 use crate::{app::CameraSettingsImpl, event::BildOutEvent};
-
-// #[derive(
-//     Debug, Clone, Copy, Eq, PartialEq, Hash, States, Component,
-//     strum::EnumIter, strum::IntoStaticStr,
-//     serde::Serialize, serde::Deserialize, TS,
-// )]
-// #[serde(tag = "type", content = "data")]
-// pub enum ToolState {
-//     Move(TransformTool),
-//     Comment(CommentTool),
-// }
-
-// impl Default for ToolState {
-//     fn default() -> Self {
-//         Self::Move(TransformTool::default())
-//     }
-// }
 
 #[derive(
     Debug,
@@ -73,13 +57,10 @@ impl ToolbarState for ToolState {
     }
 }
 
-
-
 #[derive(Component, Default)]
 pub struct GroundPlane;
 
 impl Layer for GroundPlane {}
-
 
 pub struct ToolPlugin;
 
@@ -90,11 +71,17 @@ impl Plugin for ToolPlugin {
             .add_sub_state::<TransformToolState>()
             .add_sub_state::<MarkupToolState>()
             .add_sub_state::<BlockToolState>()
-            .add_plugins((CommentToolPlugin, TransformToolPlugin::<CameraSettingsImpl>::default(), MarkupToolPlugin, BlockToolPlugin::<AnalogComponent, GroundPlane>::default()))
+            .add_plugins((
+                CommentToolPlugin,
+                TransformToolPlugin::<CameraSettingsImpl, GroundPlane>::default(),
+                MarkupToolPlugin,
+                BlockToolPlugin::<AnalogComponent, GroundPlane>::default(),
+            ))
             .add_systems(
                 Update,
                 (
-                    handle_tool_state_transition.run_if(on_event::<StateTransitionEvent<ToolState>>),
+                    handle_tool_state_transition
+                        .run_if(on_event::<StateTransitionEvent<ToolState>>),
                 ),
             );
     }
@@ -118,6 +105,52 @@ fn handle_tool_state_transition(
     }
 }
 
+// Newtype wrapper to work around orphan rule
+#[derive(Debug, Clone)]
+pub struct RadialMenuItem<T>(pub T);
 
+// Trait for converting to RadialItemData that we can implement locally
+pub trait ToRadialItem {
+    fn to_radial_item(self) -> RadialItemData;
+}
 
+impl<T> From<RadialMenuItem<T>> for RadialItemData
+where
+    T: ToRadialItem,
+{
+    fn from(item: RadialMenuItem<T>) -> Self {
+        item.0.to_radial_item()
+    }
+}
 
+impl ToRadialItem for AnalogComponent {
+    fn to_radial_item(self) -> RadialItemData {
+        match self {
+            AnalogComponent::Resistor(_) => RadialItemData {
+                icon: "resistor".to_string(),
+                color: palettes::css::ORANGE.into(),
+                label: "Resistor".to_string(),
+            },
+            AnalogComponent::Capacitor(_) => RadialItemData {
+                icon: "capacitor".to_string(),
+                color: palettes::css::BLUE.into(),
+                label: "Capacitor".to_string(),
+            },
+            AnalogComponent::Inductor(_) => RadialItemData {
+                icon: "inductor".to_string(),
+                color: palettes::css::GREEN.into(),
+                label: "Inductor".to_string(),
+            },
+            AnalogComponent::Diode(_) => RadialItemData {
+                icon: "diode".to_string(),
+                color: palettes::css::RED.into(),
+                label: "Diode".to_string(),
+            },
+            AnalogComponent::OpAmp(_) => RadialItemData {
+                icon: "opamp".to_string(),
+                color: palettes::css::PURPLE.into(),
+                label: "Op Amp".to_string(),
+            },
+        }
+    }
+}

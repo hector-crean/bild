@@ -205,9 +205,15 @@ pub struct DragTransformPlugin<T: CameraSettings>(pub T);
 
 impl<T: CameraSettings + Send + Sync + 'static> Plugin for DragTransformPlugin<T> {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, Self::sync_drag_system);
+        app.add_systems(Update, Self::sync_drag_system.run_if(run_criteria::<T>));
     }
 }
+
+fn run_criteria<T: CameraSettings>(mode: Res<T>) -> bool {
+    // !(*mode).is_locked()
+    true
+}
+
 
 impl<T: CameraSettings + Send + Sync + 'static> DragTransformPlugin<T> {
     fn sync_drag_system(mut commands: Commands, draggable_query: Query<Entity, Added<Draggable>>) {

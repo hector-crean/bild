@@ -4,7 +4,8 @@ use std::marker::PhantomData;
 
 use camera::controller::CameraSettings;
 use interaction::drag::{Draggable, TransformBounds, TransformController, TransformControllerSettings};
-use interaction::selection::Selected;
+use interaction::selection::{Selectable, Selected};
+use layer::Layer;
 use leafwing_input_manager::plugin::InputManagerPlugin;
 use leafwing_input_manager::prelude::{ActionState, InputMap};
 use bevy::math::{Quat, Vec3};
@@ -13,7 +14,7 @@ use bevy::state::state::FreelyMutableState;
 use leafwing_input_manager::Actionlike;
 use strum::{EnumIter, IntoEnumIterator};
 use ts_rs::TS;
-use super::ToolState;
+use super::{ToolState, GroundPlane};
 
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect, Default, EnumIter, Actionlike)]
@@ -179,17 +180,19 @@ impl TransformToolState {
 }
 
 #[derive(Default)]
-pub struct TransformToolPlugin<S: CameraSettings> {
+pub struct TransformToolPlugin<S: CameraSettings, L: Layer> {
     phantom_camera: PhantomData<S>,
+    phantom_layer: PhantomData<L>,
 }
 
-impl<S: CameraSettings> TransformToolPlugin<S> {
+impl<S: CameraSettings, L: Layer> TransformToolPlugin<S, L> {
     pub fn setup(
         mut commands: Commands,
         query: Query<Entity, (
             With<Transform>,
             Without<Draggable>,
             Without<TransformController>,
+            Without<L>,
         )>,
     ) {
         info!("Setting up TransformToolPlugin");
@@ -200,13 +203,14 @@ impl<S: CameraSettings> TransformToolPlugin<S> {
             ..default()
         });
 
-        // Add required components for transformation
+        // Add required components for transformation, but exclude GroundPlane entities
         for entity in query.iter() {
             info!("Adding transform components to entity: {}", entity);
             commands.entity(entity)
                 .insert(Draggable::default())
                 .insert(TransformController::default())
-                .insert(TransformBounds::default());
+                .insert(TransformBounds::default())
+                .insert(Selectable);
         }
     }
 
@@ -364,7 +368,7 @@ impl<S: CameraSettings> TransformToolPlugin<S> {
     }
 }
 
-impl<S: CameraSettings> Plugin for TransformToolPlugin<S> {
+impl<S: CameraSettings, L: Layer> Plugin for TransformToolPlugin<S, L> {
     fn build(&self, app: &mut App) {
         // if !app.is_plugin_added::<DragTransformPlugin<CameraModeImpl>>() {
         //     app.add_plugins(DragTransformPlugin::<CameraModeImpl>::default());

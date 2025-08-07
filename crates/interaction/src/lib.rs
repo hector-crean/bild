@@ -10,9 +10,13 @@ use camera::controller::CameraSettings;
 use drag::DragTransformPlugin;
 use selection::SelectionPlugin;
 
+
+#[derive(Default)]
 pub struct InteractiveMeshPlugin<T: CameraSettings> {
     phantom_camera: PhantomData<T>,
 }
+
+
 
 impl<T: CameraSettings> Plugin for InteractiveMeshPlugin<T> {
     fn build(&self, app: &mut App) {

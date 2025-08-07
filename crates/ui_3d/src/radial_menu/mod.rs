@@ -27,10 +27,7 @@ impl RadialMenu {
     }
 }
 
-pub trait RadialMenuItemDataLike:
-    Send + Sync + std::fmt::Debug + Clone + 'static + Into<RadialItemData>
-{
-}
+
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct RadialItemData {
