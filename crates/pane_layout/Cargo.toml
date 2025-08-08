@@ -1,0 +1,13 @@
+[package]
+name = "pane_layout"
+version = "0.1.0"
+edition = "2024"
+
+
+[dependencies]
+bevy.workspace = true
+styles.workspace = true
+context_menu.workspace = true
+
+[lints]
+workspace = true

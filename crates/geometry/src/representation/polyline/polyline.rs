@@ -50,7 +50,7 @@ impl Plugin for PolylineRenderPlugin {
     }
 }
 
-#[derive(Bundle, Default)]
+#[derive(Bundle)]
 pub struct PolylineBundle {
     pub polyline: PolylineHandle,
     pub material: PolylineMaterialHandle,
@@ -68,7 +68,7 @@ pub struct Polyline {
     pub vertices: Vec<Vec3>,
 }
 
-#[derive(Debug, Clone, Default, Component)]
+#[derive(Debug, Clone, Component)]
 #[require(SyncToRenderWorld, VisibilityClass)]
 #[component(on_add = view::add_visibility_class::<PolylineHandle>)]
 pub struct PolylineHandle(pub Handle<Polyline>);

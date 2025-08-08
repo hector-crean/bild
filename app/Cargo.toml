@@ -1,0 +1,35 @@
+[package]
+name = "bild_app"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+camera = { workspace = true }
+picking = { workspace = true }
+meshable = { workspace = true }
+duplex = { workspace = true }
+once_cell = { workspace = true }
+
+bevy = { workspace = true }
+ts-rs = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+strum = { workspace = true }
+widget_2d = { workspace = true }
+widget_3d = { workspace = true }
+console_error_panic_hook = { version = "0.1.6" } 
+uuid = { workspace = true }
+block3d_core = { workspace = true }
+block3d_algorithm = { workspace = true }
+layer = { workspace = true }
+bild_core = { workspace = true }
+leafwing-input-manager = { workspace = true }
+interaction = { workspace = true }
+bitflags = { workspace = true }
+geometry = { workspace = true }
+pane_layout = { workspace = true }
+viewport_2d = { workspace = true }
+viewport_3d = { workspace = true }
+styles = { workspace = true }

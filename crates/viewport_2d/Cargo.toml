@@ -1,0 +1,14 @@
+[package]
+name = "viewport_2d"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy.workspace = true
+pane_layout.workspace = true
+camera_2d.workspace = true
+styles.workspace = true
+infinite_grid.workspace = true
+
+[lints] 
+workspace = true

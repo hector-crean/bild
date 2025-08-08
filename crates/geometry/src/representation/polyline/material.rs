@@ -29,7 +29,7 @@ use bevy::{
 };
 use std::fmt::Debug;
 
-#[derive(Debug, Clone, Default, Component, ExtractComponent)]
+#[derive(Debug, Clone, Component, ExtractComponent)]
 pub struct PolylineMaterialHandle(pub Handle<PolylineMaterial>);
 
 #[derive(Asset, Debug, PartialEq, Clone, Copy, TypePath)]

@@ -1,0 +1,11 @@
+[package]
+name = "widget_2d"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy = { workspace = true }
+strum = { workspace = true }
+bild_core = { workspace = true }
