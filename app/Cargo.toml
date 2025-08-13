@@ -30,6 +30,9 @@ interaction = { workspace = true }
 bitflags = { workspace = true }
 geometry = { workspace = true }
 pane_layout = { workspace = true }
-viewport_2d = { workspace = true }
-viewport_3d = { workspace = true }
 styles = { workspace = true }
+camera_3d = { workspace = true }
+infinite_grid = { workspace = true }
+camera_2d = { workspace = true }
+uom = { workspace = true }
+circuit_physics_core = { workspace = true }

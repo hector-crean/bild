@@ -4,8 +4,7 @@ edition = "2024"
 members = [ 
     "cli", 
     "app",
-    "crates/*"
-    ]
+    "crates/*"]
 exclude = ["crates/input"]
 
 [workspace.package]
@@ -52,8 +51,8 @@ context_menu = { path = "crates/context_menu" }
 infinite_grid = { path = "crates/infinite_grid" }
 camera_2d = { path = "crates/camera_2d" }
 camera_3d = { path = "crates/camera_3d" }
-viewport_2d = { path = "crates/viewport_2d" }
-viewport_3d = { path = "crates/viewport_3d" }
+circuit_physics_core ={ path = "crates/circuit_physics_core" }
+
 
 bevy = { git = "https://github.com/cart/bevy.git", rev = "40e6f12bbad44dfe2566fda2ead83469d53717d0", features = [
     "wayland",

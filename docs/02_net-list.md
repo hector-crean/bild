@@ -1,0 +1,2 @@
+Analog Circuits
+Simulating analog circuits (with resistors, capacitors, etc.) is significantly more complex. It's not a simple propagation of values. Instead, it requires solving a system of differential equations that describe the voltage and current throughout the circuit over time.

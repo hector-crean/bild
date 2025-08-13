@@ -8,7 +8,7 @@
 //! - `Mouse Up/Down Scroll`: Zoom the camera.
 
 use bevy::prelude::*;
-use camera_2d::editor_camera_2d::*;
+use camera_2d::*;
 
 fn main() {
     App::new()

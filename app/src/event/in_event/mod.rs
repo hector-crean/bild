@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use ts_rs::TS;
 
-use crate::tool::ToolState;
+use crate::view::layout_3d::tool::ToolState;
+
 
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Event, BufferedEvent, TS)]

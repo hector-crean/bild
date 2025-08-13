@@ -69,7 +69,7 @@ pub struct Polyline {
 }
 
 #[derive(Debug, Clone, Component)]
-#[require(SyncToRenderWorld, VisibilityClass)]
+#[require(SyncToRenderWorld, VisibilityClass, Visibility, InheritedVisibility, ViewVisibility, Transform, GlobalTransform)]
 #[component(on_add = view::add_visibility_class::<PolylineHandle>)]
 pub struct PolylineHandle(pub Handle<Polyline>);
 

@@ -1,0 +1,6 @@
+## Radiation Coupling (Photoelectric & Radiative Effects) ☢️
+Circuits can be influenced by electromagnetic radiation, including light, and can also be damaged by high-energy particle radiation.
+
+Photoelectric & Photoconductive Effects: Light, which is a form of electromagnetic radiation, can directly interact with semiconductor materials. The photoelectric effect is where photons knock electrons loose, creating a current. This is the fundamental principle behind photodiodes, phototransistors, and solar cells. The reverse is also true; components like Light Emitting Diodes (LEDs) convert electrical energy directly into light, creating a form of optical-electrical coupling.
+
+Ionizing Radiation: In environments like space, high-altitude flight, or particle accelerators, circuits are exposed to high-energy particles (like protons or heavy ions). This can cause several issues, from transient glitches called Single-Event Upsets (SEUs), where a bit in memory flips, to permanent damage called Single-Event Latchup (SEL), which can destroy a chip. This requires the use of specialized "radiation-hardened" components.

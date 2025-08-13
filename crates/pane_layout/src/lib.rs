@@ -19,7 +19,7 @@ mod ui;
 /// - Panes cannot have min/max sizes, they must be able to be resized to any size.
 ///   - If a pane can not be sensibly resized, it can overflow under the other panes.
 /// - Panes must not interfere with each other, only temporary/absolute positioned elements are allowed to overlap panes.
-use bevy::prelude::*;
+use bevy::{asset::uuid::Uuid, picking::pointer::{Location, PointerId, PointerInput}, prelude::*, render::{camera::NormalizedRenderTarget, render_resource::Extent3d}};
 use styles::Theme;
 
 use crate::{
@@ -33,8 +33,22 @@ pub mod prelude {
         PaneAreaNode, PaneContentNode, PaneHeaderNode,
         components::*,
         registry::{PaneAppExt, PaneStructure},
+        ui::{spawn_pane, spawn_divider, spawn_resize_handle},
+        clamp_ratio, Divider, ResizeHandle, RootPaneLayoutNode,
     };
 }
+
+
+
+
+pub trait PaneView: Component {
+    fn camera_id(&self) -> Entity;
+}
+
+
+
+
+
 
 /// The Bevy Pane Layout Plugin.
 pub struct PaneLayoutPlugin;
@@ -43,7 +57,6 @@ impl Plugin for PaneLayoutPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(PaneRegistryPlugin)
             .init_resource::<DragState>()
-            .add_systems(Startup, setup.in_set(PaneLayoutSet))
             .add_systems(
                 Update,
                 (cleanup_divider_single_child, apply_size)
@@ -92,40 +105,10 @@ struct DragState {
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PaneLayoutSet;
 
-// TODO There is no way to save or load layouts at this moment.
-// The setup system currently just creates a default layout at startup.
-fn setup(
-    mut commands: Commands,
-    theme: Res<Theme>,
-    panes_root: Single<Entity, With<RootPaneLayoutNode>>,
-) {
-    commands.entity(*panes_root).insert((
-        Node {
-            padding: UiRect::all(Val::Px(1.)),
-            flex_grow: 1.,
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
-            // Prevent children from expanding the height of this node.
-            min_height: Val::Px(0.),
-            ..default()
-        },
-        theme.general.background_color,
-    ));
 
-    // Create a single vertical divider to split the root into left/right panes
-    let root_divider = spawn_divider(&mut commands, Divider::Vertical, 0.5)
-        .insert(ChildOf(*panes_root))
-        .id();
 
-    // Left: 3D viewport
-    spawn_pane(&mut commands, &theme, 0.5, "Viewport 3D").insert(ChildOf(root_divider));
+pub fn clamp_ratio(r: f32) -> f32 { r.clamp(0.05, 0.95) }
 
-    // Resize handle between left and right panes
-    spawn_resize_handle(&mut commands, Divider::Vertical).insert(ChildOf(root_divider));
-
-    // Right: 2D viewport
-    spawn_pane(&mut commands, &theme, 0.5, "Viewport 2D").insert(ChildOf(root_divider));
-}
 
 /// Removes a divider from the hierarchy when it has only one child left, replacing itself with that child.
 fn cleanup_divider_single_child(
@@ -160,13 +143,13 @@ fn cleanup_divider_single_child(
 
 /// A node that divides an area into multiple areas along an axis.
 #[derive(Component, Clone, Copy, PartialEq, Eq)]
-enum Divider {
+pub enum Divider {
     Horizontal,
     Vertical,
 }
 
 #[derive(Component)]
-struct ResizeHandle;
+pub struct ResizeHandle;
 
 /// The fraction of space this element takes up in the [`Divider`] it's a child of.
 #[derive(Component)]
@@ -193,3 +176,98 @@ pub struct PaneHeaderNode;
 /// Node to denote the content space of the Pane.
 #[derive(Component, Clone, Default)]
 pub struct PaneContentNode;
+
+
+
+pub fn pointer_id_from_entity(entity: Entity) -> PointerId {
+    let bits = entity.to_bits();
+    PointerId::Custom(Uuid::from_u64_pair(bits, bits))
+}
+
+
+
+
+
+/// A viewport is considered active while the mouse is hovering over it.
+#[derive(Component)]
+pub struct Active;
+
+// FIXME: This system makes a lot of assumptions and is therefore rather fragile. Does not handle multiple windows.
+/// Sends copies of [`PointerInput`] event actions from the mouse pointer to pointers belonging to the viewport panes.
+pub fn render_target_picking_passthrough<View: PaneView>(
+    viewports: Query<(Entity, &View)>,
+    content: Query<&PaneContentNode>,
+    children_query: Query<&Children>,
+    node_query: Query<(&ComputedNode, &UiGlobalTransform, &ImageNode), With<Active>>,
+    mut pointer_input_reader: EventReader<PointerInput>,
+    // Using commands to output PointerInput events to avoid clashing with the EventReader
+    mut commands: Commands,
+) {
+    for event in pointer_input_reader.read() {
+        // Ignore the events sent from this system by only copying events that come directly from the mouse.
+        if event.pointer_id != PointerId::Mouse {
+            continue;
+        }
+        for (pane_root, _viewport) in &viewports {
+            let content_node_id = children_query
+                .iter_descendants(pane_root)
+                .find(|e| content.contains(*e))
+                .unwrap();
+
+            let image_id = children_query.get(content_node_id).unwrap()[0];
+            let Ok((computed_node, global_transform, ui_image)) = node_query.get(image_id) else {
+                // Inactive viewport
+                continue;
+            };
+            let node_top_left = global_transform.translation - computed_node.size() / 2.;
+            let position = event.location.position - node_top_left;
+            let target = NormalizedRenderTarget::Image(ui_image.image.clone().into());
+
+            let event_copy = PointerInput {
+                action: event.action,
+                location: Location { position, target },
+                pointer_id: pointer_id_from_entity(pane_root),
+            };
+
+            commands.write_event(event_copy);
+        }
+    }
+}
+
+
+
+
+
+pub fn update_render_target_size<View: PaneView>(
+    query: Query<(Entity, &View)>,
+    mut camera_query: Query<&Camera>,
+    bodies: Query<&PaneContentNode>,
+    children_query: Query<&Children>,
+    computed_node_query: Query<&ComputedNode, Changed<ComputedNode>>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    for (pane_root, viewport) in &query {
+        let Some(pane_body) = children_query
+            .iter_descendants(pane_root)
+            .find(|e| bodies.contains(*e))
+        else {
+            continue;
+        };
+
+        let Ok(computed_node) = computed_node_query.get(pane_body) else {
+            continue;
+        };
+        // TODO Convert to physical pixels
+        let content_node_size = computed_node.size();
+
+        let camera = camera_query.get_mut(viewport.camera_id()).unwrap();
+
+        let image_handle = camera.target.as_image().unwrap();
+        let size = Extent3d {
+            width: u32::max(1, content_node_size.x as u32),
+            height: u32::max(1, content_node_size.y as u32),
+            depth_or_array_layers: 1,
+        };
+        images.get_mut(image_handle).unwrap().resize(size);
+    }
+}

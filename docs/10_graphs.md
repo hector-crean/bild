@@ -1,0 +1,1 @@
+I should consider architectural options like port-level graphs, component-level graphs, and bipartite models. Typically, I use hypergraphs since wires can connect multiple pins. I also need to think about incidence modeling, ensuring directionality matters for sources while working with undirected nets in the netlist.

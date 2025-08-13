@@ -21,7 +21,7 @@ pub fn header_context_menu() -> ContextMenu {
     ])
 }
 
-pub(crate) fn spawn_pane<'a>(
+pub fn spawn_pane<'a>(
     commands: &'a mut Commands,
     theme: &Theme,
     size: f32,
@@ -156,7 +156,7 @@ pub(crate) fn spawn_pane<'a>(
     commands.entity(root)
 }
 
-pub(crate) fn spawn_divider<'a>(
+pub fn spawn_divider<'a>(
     commands: &'a mut Commands,
     divider: Divider,
     size: f32,
@@ -174,7 +174,7 @@ pub(crate) fn spawn_divider<'a>(
     ))
 }
 
-pub(crate) fn spawn_resize_handle<'a>(
+pub fn spawn_resize_handle<'a>(
     commands: &'a mut Commands,
     divider_parent: Divider,
 ) -> EntityCommands<'a> {

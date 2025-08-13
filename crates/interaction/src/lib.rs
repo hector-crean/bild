@@ -7,7 +7,7 @@ use bevy::prelude::*;
 
 use camera::controller::CameraSettings;
 
-use drag::DragTransformPlugin;
+use drag::{three_d::DragTransform3dPlugin, two_d::DragTransform2dPlugin};
 use selection::SelectionPlugin;
 
 
@@ -20,9 +20,6 @@ pub struct InteractiveMeshPlugin<T: CameraSettings> {
 
 impl<T: CameraSettings> Plugin for InteractiveMeshPlugin<T> {
     fn build(&self, app: &mut App) {
-        app.add_plugins((
-            SelectionPlugin,
-            DragTransformPlugin::<T>::default(),
-        ));
+        app.add_plugins((SelectionPlugin, DragTransform3dPlugin::<T>::default(), DragTransform2dPlugin::<T>::default()));
     }
 }
