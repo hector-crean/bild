@@ -4,7 +4,8 @@ edition = "2024"
 members = [ 
     "cli", 
     "app",
-    "crates/*"]
+    "crates/*"
+    ]
 exclude = ["crates/input"]
 
 [workspace.package]
@@ -37,6 +38,7 @@ picking = { path = "crates/picking" }
 meshable = { path = "crates/meshable" }
 duplex = { path = "crates/duplex" }
 block3d_core = { path = "crates/block3d_core" }
+grid_2d = { path = "crates/grid_2d" }
 block3d_algorithm = { path = "crates/block3d_algorithm" }
 widget_2d = { path = "crates/widget_2d" }
 widget_3d = { path = "crates/widget_3d" }

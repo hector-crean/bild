@@ -2,6 +2,7 @@ pub mod net;
 pub mod part;
 pub mod pin;
 pub mod trace;
+pub mod layer;
 
 pub mod circuit_graph;
 pub mod circuit_graph_render;

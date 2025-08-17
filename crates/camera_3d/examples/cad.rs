@@ -17,7 +17,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             DefaultEditorCamPlugins,
-            TemporalAntiAliasPlugin,
+            // TemporalAntiAliasPlugin,
         ))
         // The camera controller works with reactive rendering:
         // .insert_resource(bevy::winit::WinitSettings::desktop_app())

@@ -1,5 +1,4 @@
 pub mod block;
-pub mod grid;
 pub mod connection;
 pub mod orientation;
 pub mod symmetry;

@@ -36,3 +36,4 @@ infinite_grid = { workspace = true }
 camera_2d = { workspace = true }
 uom = { workspace = true }
 circuit_physics_core = { workspace = true }
+grid_2d = { workspace = true }

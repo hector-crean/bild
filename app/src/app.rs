@@ -13,6 +13,7 @@ use crate::{
     event::{BildInEvent, BildOutEvent},
     view::{schematic_2d::Schematic2dPlugin},
 };
+use crate::circuit::layer::plugin::LayerManagerPlugin;
 // use crate::circuit::commands::CommandsCircuitExt;
 // use crate::circuit::part::Part;
 // #[cfg(not(target_arch = "wasm32"))]
@@ -76,9 +77,10 @@ impl Plugin for AppPlugin {
                 PickingExtraPlugin,
                 Ui3dPlugin,
                 UiPlugin,
+                LayerManagerPlugin::<grid_2d::vec::grid::Grid<f32>>::new(),
                 //views
                 // Layout3dViewPlugin,
-                Schematic2dPlugin {},
+                // Schematic2dPlugin {},
             ));
         
 
