@@ -1,5 +1,9 @@
+
 pub mod selection;
 pub mod drag;
+pub mod picking;
+
+
 
 use std::marker::PhantomData;
 
@@ -9,6 +13,8 @@ use camera::controller::CameraSettings;
 
 use drag::{three_d::DragTransform3dPlugin, two_d::DragTransform2dPlugin};
 use selection::SelectionPlugin;
+
+use crate::picking::double_click::DoubleClickPlugin;
 
 
 #[derive(Default)]
@@ -20,6 +26,11 @@ pub struct InteractiveMeshPlugin<T: CameraSettings> {
 
 impl<T: CameraSettings> Plugin for InteractiveMeshPlugin<T> {
     fn build(&self, app: &mut App) {
-        app.add_plugins((SelectionPlugin, DragTransform3dPlugin::<T>::default(), DragTransform2dPlugin::<T>::default()));
+        app.add_plugins((
+            SelectionPlugin, 
+            DragTransform3dPlugin::<T>::default(), 
+            DragTransform2dPlugin::<T>::default(),
+            DoubleClickPlugin
+        ));
     }
 }

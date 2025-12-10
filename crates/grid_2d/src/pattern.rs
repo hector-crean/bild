@@ -167,7 +167,7 @@ impl Pattern for SideStepsPattern {
     }
 
     fn rest_steps(&self) -> Option<Vec<Step>> {
-        Some(self.steps[self.idx..].iter().copied().collect())
+        Some(self.steps[self.idx..].to_vec())
     }
 }
 
@@ -206,6 +206,6 @@ impl Pattern for JumpsPattern {
     }
 
     fn rest_positions(&self) -> Option<Vec<Position>> {
-        Some(self.jumps[self.idx..].iter().copied().collect())
+        Some(self.jumps[self.idx..].to_vec())
     }
 }

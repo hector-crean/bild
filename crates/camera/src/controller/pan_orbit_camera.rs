@@ -5,7 +5,6 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     picking::pointer::{PointerAction, PointerInput},
     prelude::*,
-    render::camera::Camera,
 };
 
 use std::{f32::consts::FRAC_PI_2, ops::RangeInclusive};
@@ -16,7 +15,7 @@ pub struct OrbitCameraControllerPlugin<T: CameraSettings>(pub T);
 impl<T: CameraSettings + Send + Sync + 'static> Plugin for OrbitCameraControllerPlugin<T> {
     fn build(&self, app: &mut App) {
         app.init_resource::<T>()
-            .add_event::<CameraInputEvent>()
+            .add_message::<CameraInputEvent>()
             .add_systems(
                 Update,
                 (
@@ -35,7 +34,7 @@ fn run_criteria<T: CameraSettings>(mode: Res<T>) -> bool {
     !(*mode).is_locked()
 }
 
-#[derive(Event, BufferedEvent)]
+#[derive(Event, Message)]
 pub enum CameraInputEvent {
     Rotate { delta: Vec2 },
     Pan { delta: Vec2 },
@@ -196,9 +195,9 @@ impl CameraController for OrbitCameraController {
 
 impl<T: CameraSettings> OrbitCameraControllerPlugin<T> {
     fn handle_pointer_input(
-        mut pointer_events: EventReader<PointerInput>,
+        mut pointer_events: MessageReader<PointerInput>,
         mouse_input: Res<ButtonInput<MouseButton>>,
-        mut camera_events: EventWriter<CameraInputEvent>,
+        mut camera_events: MessageWriter<CameraInputEvent>,
         camera_query: Query<&OrbitCameraController>,
         settings: Res<T>,
     ) {
@@ -225,8 +224,8 @@ impl<T: CameraSettings> OrbitCameraControllerPlugin<T> {
     }
 
     fn handle_scroll_input(
-        mut scroll_events: EventReader<MouseWheel>,
-        mut camera_events: EventWriter<CameraInputEvent>,
+        mut scroll_events: MessageReader<MouseWheel>,
+        mut camera_events: MessageWriter<CameraInputEvent>,
         camera_query: Query<&OrbitCameraController>,
         settings: Res<T>,
     ) {
@@ -256,7 +255,7 @@ impl<T: CameraSettings> OrbitCameraControllerPlugin<T> {
     }
 
     fn process_camera_input(
-        mut camera_events: EventReader<CameraInputEvent>,
+        mut camera_events: MessageReader<CameraInputEvent>,
         mut camera_query: Query<(&mut OrbitCameraController, &Transform)>,
         time: Res<Time>,
     ) {

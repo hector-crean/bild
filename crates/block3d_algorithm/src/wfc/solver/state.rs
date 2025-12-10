@@ -47,7 +47,7 @@ impl<T: Block3DLike> NodeState<T> {
         for (index, face) in faces.enumerate() {
             let interface = face.oriented_interface();
             // Create a connection point with a unique ID
-            let conn_id = format!("conn_{}", index);
+            let conn_id = format!("conn_{index}");
                 
             // Calculate position offset based on face position and block size
             let size = self.block.size();
@@ -60,7 +60,7 @@ impl<T: Block3DLike> NodeState<T> {
             
             // Create connection point
             let conn_point = ConnectionPoint::new(
-                interface.clone(),
+                interface,
                 pos_offset,
             );
             

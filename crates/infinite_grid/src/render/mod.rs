@@ -16,7 +16,7 @@ use bevy::{
     prelude::*,
     render::{
         Extract, ExtractSchedule, Render, RenderApp, RenderSystems,
-        mesh::PrimitiveTopology,
+        mesh,
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItem, PhaseItemExtraIndex, RenderCommand,
             RenderCommandResult, SetItemPipeline, ViewSortedRenderPhases,
@@ -27,11 +27,11 @@ use bevy::{
             DynamicUniformBuffer, FragmentState, MultisampleState, PipelineCache, PolygonMode,
             PrimitiveState, RenderPipelineDescriptor, ShaderStages, ShaderType,
             SpecializedRenderPipeline, SpecializedRenderPipelines, StencilFaceState, StencilState,
-            TextureFormat, VertexState, binding_types::uniform_buffer,
+            TextureFormat, VertexState, binding_types::uniform_buffer, PrimitiveTopology
         },
         renderer::{RenderDevice, RenderQueue},
         sync_world::RenderEntity,
-        view::{ExtractedView, RenderVisibleEntities, ViewTarget, VisibleEntities},
+        view::{ExtractedView, RenderVisibleEntities, ViewTarget},
     },
 };
 
@@ -292,13 +292,12 @@ fn extract_infinite_grids(
             &RenderEntity,
             &InfiniteGridSettings,
             &GlobalTransform,
-            &VisibleEntities,
         )>,
     >,
 ) {
     let extracted: Vec<_> = grids
         .iter()
-        .map(|(entity, grid, transform, visible_entities)| {
+        .map(|(entity, grid, transform)| {
             (
                 **entity,
                 (
@@ -306,7 +305,6 @@ fn extract_infinite_grids(
                         transform: *transform,
                         grid: *grid,
                     },
-                    visible_entities.clone(),
                 ),
             )
         })

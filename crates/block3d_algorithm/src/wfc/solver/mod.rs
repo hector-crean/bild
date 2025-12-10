@@ -7,7 +7,7 @@ use block3d_core::block::Block3DLike;
 use block3d_core::Orientation;
 use petgraph::graph::NodeIndex;
 use spatial_grid::SpatialGrid;
-use std::collections::{HashMap, HashSet, BTreeMap};
+use std::collections::{HashMap, HashSet};
 
 use error::WFCError;
 use petgraph::visit::Dfs;
@@ -284,10 +284,10 @@ impl<T: Block3DLike> WFCSolver<T> {
             let (other_node, self_conn_id, other_conn_id) = &possible_connections[0];
             
             // Update connection maps
-            self.connections.entry(node).or_insert_with(HashMap::new)
+            self.connections.entry(node).or_default()
                 .insert(self_conn_id.clone(), (*other_node, other_conn_id.clone()));
             
-            self.connections.entry(*other_node).or_insert_with(HashMap::new)
+            self.connections.entry(*other_node).or_default()
                 .insert(other_conn_id.clone(), (node, self_conn_id.clone()));
             
             // Update NodeState connection information

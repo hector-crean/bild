@@ -7,3 +7,4 @@ license.workspace = true
 
 [dependencies]
 bevy = { workspace = true }
+bevy_render = { workspace = true }

@@ -16,6 +16,6 @@ pub mod prelude {
     pub use bevy::math::primitives::{Primitive2d, Primitive3d, Measured2d, Measured3d};
     
     // Re-export our custom traits
-    pub use crate::traits::*;
+    
     
 }

@@ -1,8 +1,7 @@
-use serde::{Serialize, Deserialize};
 // use bevy::prelude::*;
 // use uom::si::f64::*;
 use uom::si::{
-    acceleration::meter_per_second_squared, electric_current::ampere, electric_potential::volt, electrical_resistance::ohm, f32::{Acceleration, ElectricCurrent, ElectricField, ElectricalResistance, Frequency, MagneticFluxDensity, Power, ThermodynamicTemperature, Time}, frequency::hertz, luminous_intensity::candela, magnetic_flux_density::tesla, power::watt, pressure::pascal, thermodynamic_temperature::kelvin, time::second
+    f32::{Power, ThermodynamicTemperature}, power::watt, thermodynamic_temperature::kelvin
 };
 
 // ============================================================================
@@ -48,6 +47,6 @@ pub trait TemperatureDependent {
     /// Calculate parameter drift due to temperature
     fn parameter_drift(&self, current_temp: ThermodynamicTemperature) -> f32 {
         let temp_diff = current_temp.get::<kelvin>() - self.reference_temperature().get::<kelvin>();
-        self.temperature_coefficient() * temp_diff as f32 / 1e6 // Convert ppm to fraction
+        self.temperature_coefficient() * temp_diff / 1e6 // Convert ppm to fraction
     }
 }

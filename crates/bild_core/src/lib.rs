@@ -21,7 +21,6 @@ pub mod prelude {
         actions::{ActionAppExt, ActionWorldExt},
         keybinding::{Keybinding, KeybindingAppExt},
         selection::EditorSelection,
-        utils::IntoBoxedScene,
     };
 }
 

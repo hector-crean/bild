@@ -1,8 +1,7 @@
-use serde::{Serialize, Deserialize};
 // use bevy::prelude::*;
 // use uom::si::f64::*;
 use uom::si::{
-    acceleration::meter_per_second_squared, electric_current::ampere, electric_potential::volt, electrical_resistance::ohm, f32::{Acceleration, ElectricCurrent, ElectricField, ElectricalResistance, Frequency, MagneticFluxDensity, Power, ThermodynamicTemperature, Time}, frequency::hertz, luminous_intensity::candela, magnetic_flux_density::tesla, power::watt, pressure::pascal, thermodynamic_temperature::kelvin, time::second
+    f32::{ThermodynamicTemperature, Time}, thermodynamic_temperature::kelvin, time::second
 };
 
 
@@ -45,7 +44,7 @@ pub trait WearOut {
     /// Calculate reliability at given time
     fn reliability_at_time(&self, time: Time) -> f32 {
         let (beta, eta) = self.weibull_parameters();
-        let t = time.get::<second>() as f32;
+        let t = time.get::<second>();
         (-((t / eta).powf(beta))).exp()
     }
     

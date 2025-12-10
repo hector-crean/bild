@@ -4,10 +4,6 @@
 //! is a simple Asset type with its own specific material trait and plugin system.
 //! Uses Bevy's Extract trait for proper render world data extraction.
 
-use bevy::prelude::*;
-use bevy::render::render_resource::{AsBindGroup, ShaderRef};
-use bevy::render::extract_component::{ExtractComponent, ExtractComponentPlugin};
-use bevy::render::RenderApp;
 
 pub mod sdf;
 pub mod pointcloud;

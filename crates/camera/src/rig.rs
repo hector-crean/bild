@@ -1,5 +1,5 @@
-use bevy::{prelude::*, render::{camera::Camera, view::RenderLayers}};
-
+use bevy::{prelude::*};
+use bevy::camera::Camera;
 
 pub trait CameraRig: Resource {
     fn add_camera(&mut self, camera: Camera);

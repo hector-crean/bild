@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime};
 
 /// Different types of time backends for simulation
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Default)]
 pub enum TimeBackend {
     /// Real-time simulation synchronized with wall clock
+    #[default]
     RealTime,
     /// Accelerated simulation (faster than real-time)
     Accelerated { factor: f64 },
@@ -21,11 +23,6 @@ pub enum TimeBackend {
     Custom { name: String, config: serde_json::Value },
 }
 
-impl Default for TimeBackend {
-    fn default() -> Self {
-        TimeBackend::RealTime
-    }
-}
 
 /// Simulation time representation
 #[derive(Debug, Clone, Serialize, Deserialize)]

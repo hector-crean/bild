@@ -81,7 +81,7 @@ impl<'a, T> PositionsEnumerator for PatternIter<'a, T> {
             prev_position: Some(self.prev_position),
             next_pos: |inner, prev| {
                 if let Some(action) = inner.pattern.next_action_peek() {
-                    return match action {
+                    match action {
                         Action::Step(step) => {
                             //prev can not be None in this case, since we set prev_position
                             step.take_step_from_position(prev.unwrap())
@@ -123,7 +123,7 @@ impl<'a, T> PositionsEnumerator for PatternIter<'a, T> {
                             }
                             pos
                         }
-                    };
+                    }
                 } else {
                     // Since we call .next() for the inner later,
                     // we should not do any bound checks here.

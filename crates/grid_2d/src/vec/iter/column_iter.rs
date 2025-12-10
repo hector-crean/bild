@@ -9,6 +9,7 @@ pub struct ColumnIter<'a, T> {
     pub(crate) grid: &'a Grid<T>,
 }
 
+
 impl<'a, T> Iterator for ColumnIter<'a, T> {
     type Item = &'a T;
 

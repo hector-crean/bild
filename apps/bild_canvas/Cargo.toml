@@ -1,0 +1,40 @@
+[package]
+name = "bild_canvas"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+camera = { workspace = true }
+once_cell = { workspace = true }
+
+bevy = { workspace = true }
+ts-rs = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+strum = { workspace = true }
+ui = { workspace = true }
+console_error_panic_hook = { version = "0.1.6" } 
+uuid = { workspace = true }
+block3d_core = { workspace = true }
+block3d_algorithm = { workspace = true }
+bild_core = { workspace = true }
+leafwing-input-manager = { workspace = true }
+interaction = { workspace = true }
+bitflags = { workspace = true }
+geometry = { workspace = true }
+infinite_grid = { workspace = true }
+uom = { workspace = true }
+circuit_physics_core = { workspace = true }
+grid_2d = { workspace = true }
+petgraph = { workspace = true }
+thiserror = { workspace = true }
+web-time = { workspace = true }
+tokio = { workspace = true }
+futures = { workspace = true }
+futures-timer = { workspace = true }
+async-compat = { workspace = true }
+crossbeam-channel = { workspace = true }
+bevy-inspector-egui = { workspace = true }
+rand = { workspace = true }

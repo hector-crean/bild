@@ -2,12 +2,11 @@
 
 mod render;
 
-use bevy::render::view::{
-    NoFrustumCulling, VisibilityClass, VisibleEntities, add_visibility_class,
-};
 use bevy::{prelude::*, render::sync_world::SyncToRenderWorld};
 
+
 pub struct InfiniteGridPlugin;
+
 
 impl Plugin for InfiniteGridPlugin {
     fn build(&self, _: &mut App) {}
@@ -22,16 +21,14 @@ impl Plugin for InfiniteGridPlugin {
     InfiniteGridSettings,
     Transform,
     Visibility,
-    VisibleEntities,
-    NoFrustumCulling,
     SyncToRenderWorld
 )]
 pub struct InfiniteGrid;
 
+
 #[derive(Component, Copy, Clone)]
-#[require(VisibilityClass)]
-#[component(on_add = add_visibility_class::<InfiniteGridSettings>)]
 pub struct InfiniteGridSettings {
+
     pub x_axis_color: Color,
     pub z_axis_color: Color,
     pub minor_line_color: Color,

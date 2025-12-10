@@ -1,16 +1,28 @@
 use super::iter::*;
 
 use std::mem;
+use bevy::ecs::component::Component;
+use bevy::reflect::Reflect;
 use crate::position::Position;
 use crate::pattern::*;
 use crate::step::*;
 
 /// 2D Grid, Position (0,0) is at the top left corner
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Reflect, Component)]
 pub struct Grid<T> {
     pub(crate) items: Vec<T>,
     pub(crate) width: usize,
     pub(crate) height: usize,
+}
+
+impl<T: Default> Default for Grid<T> {
+    fn default() -> Self {
+        Self {
+            items: Vec::new(),
+            width: 0,
+            height: 0,
+        }
+    }
 }
 
 impl<T: Clone> Grid<T> {
@@ -150,7 +162,7 @@ impl<T> GridIterExt for Grid<T> {
         ColumnIter {
             row_idx: 0,
             col_idx: x,
-            grid: &self,
+            grid: self,
         }
     }
 
@@ -171,7 +183,7 @@ impl<T> GridNeighborExt for Grid<T> {
         let pos: Position = Position::new(x, y);
         NeighborIter {
             positions: self.get_neighbor_positions(pos),
-            grid: &self,
+            grid: self,
             idx: 0,
         }
     }
@@ -187,7 +199,7 @@ impl<T> GridPatternExt for Grid<T> {
 
     fn pattern<P: Pattern + 'static>(&self, x: usize, y: usize, pattern: P) -> Self::PatternIter<'_> {
         PatternIter {
-            grid: &self,
+            grid: self,
             origin_position: (x, y).into(),
             prev_position: (x, y).into(),
             pattern: Box::new(pattern),
@@ -384,7 +396,7 @@ impl<T> Grid<T> {
     pub fn positions(&self) -> PositionsIter {
         PositionsIter {
             len: self.items.len(),
-            width: self.width as usize,
+            width: self.width,
             idx: 0,
         }
     }
@@ -393,7 +405,7 @@ impl<T> Grid<T> {
     pub fn iter(&self) -> GridIter<'_, T> {
         GridIter {
             grid_iter: self.items.iter(),
-            width: self.width as usize,
+            width: self.width,
         }
     }
 
@@ -401,7 +413,7 @@ impl<T> Grid<T> {
     pub fn iter_mut(&mut self) -> GridIterMut<'_, T> {
         GridIterMut {
             grid_iter: self.items.iter_mut(),
-            width: self.width as usize,
+            width: self.width,
         }
     }
 
@@ -441,7 +453,7 @@ impl<T> Grid<T> {
         ColumnIter {
             row_idx: 0,
             col_idx: x,
-            grid: &self,
+            grid: self,
         }
     }
 
@@ -493,7 +505,7 @@ impl<T> Grid<T> {
         assert!(self.is_bounds(pos));
         NeighborIter {
             positions: self.get_neighbor_positions(pos),
-            grid: &self,
+            grid: self,
             idx: 0,
         }
     }
@@ -507,7 +519,7 @@ impl<T> Grid<T> {
     {
         let pos = pos.into();
         PatternIter {
-            grid: &self,
+            grid: self,
             origin_position: pos,
             prev_position: pos,
             pattern: Box::new(pattern),

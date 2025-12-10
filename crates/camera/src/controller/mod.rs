@@ -1,6 +1,6 @@
 pub mod pan_orbit_camera;
 
-use bevy::{prelude::*, render::{camera::Camera, view::RenderLayers}};
+use bevy::prelude::*;
 
 pub trait CameraController: Component
 where

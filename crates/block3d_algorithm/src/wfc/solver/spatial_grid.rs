@@ -40,7 +40,7 @@ impl SpatialGrid {
         for x in min_cell.0..=max_cell.0 {
             for y in min_cell.1..=max_cell.1 {
                 for z in min_cell.2..=max_cell.2 {
-                    self.cells.entry((x, y, z)).or_insert_with(Vec::new).push(node_idx);
+                    self.cells.entry((x, y, z)).or_default().push(node_idx);
                 }
             }
         }

@@ -2,8 +2,6 @@ use std::collections::HashMap;
 
 use block3d_core::block::Block3DLike;
 use petgraph::graph::NodeIndex;
-use block3d_core::connection::ConnectorInterface;
-use block3d_core::face::Face;
 
 use super::{state::NodeState};
 

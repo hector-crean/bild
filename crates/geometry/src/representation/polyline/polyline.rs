@@ -1,5 +1,7 @@
 use super::material::PolylineMaterialHandle;
+use bevy::mesh::VertexBufferLayout;
 use bevy::{
+
     ecs::{
         query::ROQueryItem,
         system::{
@@ -16,7 +18,8 @@ use bevy::{
         render_resource::{binding_types::uniform_buffer, *},
         renderer::RenderDevice,
         sync_world::{RenderEntity, SyncToRenderWorld},
-        view::{self, ViewUniform, ViewUniforms, VisibilityClass},
+        view::{self, ViewUniform, ViewUniforms},
+
         Extract, Render, RenderApp, RenderSystems,
     },
 };
@@ -69,8 +72,10 @@ pub struct Polyline {
 }
 
 #[derive(Debug, Clone, Component)]
-#[require(SyncToRenderWorld, VisibilityClass, Visibility, InheritedVisibility, ViewVisibility, Transform, GlobalTransform)]
-#[component(on_add = view::add_visibility_class::<PolylineHandle>)]
+#[require(SyncToRenderWorld, Visibility, InheritedVisibility, ViewVisibility, Transform, GlobalTransform)]
+// #[component(on_add = bevy::render::view::add_visibility_class::<PolylineHandle>)]
+
+
 pub struct PolylineHandle(pub Handle<Polyline>);
 
 impl RenderAsset for GpuPolyline {

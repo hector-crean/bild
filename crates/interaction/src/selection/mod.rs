@@ -60,7 +60,7 @@ impl SelectionPlugin {
 
     fn handle_click_on_selectable() -> impl Fn(On<Pointer<Click>>, Query<&Selected, Without<NoDeselect>>, Commands) {
         move |trigger, selected_query, mut commands| {
-            let entity = trigger.target();
+            let entity = trigger.event().entity;
             
             // Toggle selection by checking if Selected component exists
             if selected_query.get(entity).is_ok() {

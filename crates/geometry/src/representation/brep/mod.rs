@@ -4,7 +4,10 @@ use bevy::app::{App, Plugin};
 use bevy::prelude::*;
 use bevy::asset::Asset;
 use bevy::reflect::TypePath;
-use bevy::render::render_resource::{AsBindGroup, RenderPipelineDescriptor, ShaderRef, ShaderType, SpecializedMeshPipelineError, SpecializedMeshPipelines, SpecializedRenderPipeline};
+use bevy::render::render_resource::AsBindGroup;
+use bevy::shader::ShaderRef;
+
+
 
 
 
@@ -48,6 +51,12 @@ pub struct BRepPipeline<M: BRepMaterial> {
 }
 
 
+impl<M: BRepMaterial> Default for BRepPipeline<M> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<M: BRepMaterial> BRepPipeline<M> {
     pub fn new() -> Self {
         Self {
@@ -80,6 +89,12 @@ impl<M: BRepMaterial> Plugin for BRepMaterialPlugin<M> {
             //         )
             //     );
         }
+    }
+}
+
+impl<M: BRepMaterial> Default for BRepMaterialPlugin<M> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

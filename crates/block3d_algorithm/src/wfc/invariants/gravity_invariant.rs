@@ -34,7 +34,9 @@ impl<T: Block3DLike> WFCInvariant<T> for GravityInvariant {
         
         // For nodes not on the bottom layer, check if they have support
         // A node has support if it has neighbors below it that are collapsed
-        let has_support = graph.neighbors(node)
+        
+            
+        graph.neighbors(node)
             .filter(|neighbor| {
                 // Same logic as above to find nodes below
                 neighbor.index() > node.index() && 
@@ -43,9 +45,7 @@ impl<T: Block3DLike> WFCInvariant<T> for GravityInvariant {
             .any(|below_neighbor| {
                 // Check if the below neighbor is collapsed
                 solver.collapsed.contains(&below_neighbor)
-            });
-            
-        has_support
+            })
     }
 
     fn propagate(&self, node: NodeIndex, solver: &WFCSolver<T>) -> Vec<NodeIndex> {

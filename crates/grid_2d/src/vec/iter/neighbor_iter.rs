@@ -8,6 +8,7 @@ pub struct NeighborIter<'a, T> {
     pub(crate) idx: usize,
 }
 
+
 impl<'a, T> Iterator for NeighborIter<'a, T> {
     type Item = &'a T;
 
