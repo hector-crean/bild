@@ -1,19 +1,21 @@
-pub mod components;
-pub mod queries;
 pub mod commands;
+pub mod components;
+pub mod edge_position_update;
 pub mod propagate;
+pub mod queries;
 pub mod render;
 
 // Re-export commonly used items for convenience
-pub use components::*;
-pub use queries::*;
 pub use commands::*;
+pub use components::*;
+pub use edge_position_update::EdgePositionUpdatePlugin;
 pub use propagate::*;
+pub use queries::*;
 
 use bevy::prelude::*;
 
 /// Change set tracking what properties changed on a node
-#[derive(Clone, Debug, Reflect, Default)]
+#[derive(Clone, Debug, Reflect, Default, serde::Serialize, serde::Deserialize)]
 pub struct NodeChangeSet {
     pub transform_changed: bool,
     pub global_transform_changed: bool,
@@ -21,7 +23,7 @@ pub struct NodeChangeSet {
 }
 
 /// Change set tracking what properties changed on an edge
-#[derive(Clone, Debug, Reflect, Default)]
+#[derive(Clone, Debug, Reflect, Default, serde::Serialize, serde::Deserialize)]
 pub struct EdgeChangeSet {
     pub edge_kind_changed: bool,
     pub color_changed: bool,
@@ -61,7 +63,7 @@ pub enum CircuitGraphMessage {
         from: Entity,
         to: Entity,
     },
-    
+
     // Topology changes (affects graph structure)
     NodeConnected {
         node: Entity,
@@ -73,7 +75,7 @@ pub enum CircuitGraphMessage {
         edge: Entity,
         neighbor: Entity,
     },
-    
+
     // Property changes
     NodeChanged {
         entity: Entity,
@@ -86,14 +88,13 @@ pub enum CircuitGraphMessage {
         to: Entity,
         changes: EdgeChangeSet,
     },
-    
+
     // Propagation events (for graph algorithms)
     PropagationTriggered {
         source: Entity,
         affected_nodes: Vec<Entity>,
         propagation_type: PropagationType,
     },
-
 }
 
 #[derive(Message, Event, Clone, Debug, Reflect)]
@@ -334,14 +335,18 @@ impl Default for GraphEventPropagationConfig {
 /// System sets for ordering graph systems
 #[derive(SystemSet, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum GraphSystemSet {
-    /// First: Detect changes to graph structure and components
+    /// First: Record transactions before graph changes
+    TransactionRecording,
+    /// Second: Detect changes to graph structure and components
     ChangeDetection,
-    /// Second: Generate events from detected changes
+    /// Third: Generate events from detected changes
     EventGeneration,
-    /// Third: Propagate events through the graph
+    /// Fourth: Propagate events through the graph
     EventPropagation,
-    /// Fourth: Sync with petgraph resource (for solver compatibility)
+    /// Fifth: Sync with petgraph resource (for solver compatibility)
     GraphSync,
+    /// Sixth: Create snapshots after sync
+    SnapshotCreation,
     /// Last: For other plugins to consume events
     Consumption,
 }
@@ -371,7 +376,8 @@ impl Plugin for CircuitGraphManagerPlugin {
                     detect_property_changes,
                 )
                     .chain()
-                    .in_set(GraphSystemSet::ChangeDetection),
+                    .in_set(GraphSystemSet::ChangeDetection)
+                    .after(GraphSystemSet::TransactionRecording),
             )
             .add_systems(
                 Update,
@@ -406,7 +412,7 @@ impl Plugin for CircuitGraphManagerPlugin {
 /// Detect node additions and removals
 fn detect_node_changes(
     graph_query: CircuitGraphQuery,
-        mut graph_messages: MessageWriter<CircuitGraphMessage>,
+    mut graph_messages: MessageWriter<CircuitGraphMessage>,
     added_nodes: Query<CircuitNodeQueryData, Added<CircuitNode>>,
     mut removed_nodes: RemovedComponents<CircuitNode>,
 ) {
@@ -432,7 +438,7 @@ fn detect_node_changes(
 
 /// Detect edge additions and removals
 fn detect_edge_changes(
-        mut graph_messages: MessageWriter<CircuitGraphMessage>,
+    mut graph_messages: MessageWriter<CircuitGraphMessage>,
     added_edges: Query<CircuitEdgeQueryData, Added<CircuitEdge>>,
     mut removed_edges: RemovedComponents<CircuitEdge>,
     edges: Query<(&EdgeFrom, &EdgeTo), With<CircuitEdge>>,
@@ -461,11 +467,8 @@ fn detect_edge_changes(
 
 /// Detect topology changes (relationship changes: EdgeFrom/EdgeTo modified)
 fn detect_topology_changes(
-        mut graph_messages: MessageWriter<CircuitGraphMessage>,
-    changed_edges: Query<
-        (Entity, &EdgeFrom, &EdgeTo),
-        Or<(Changed<EdgeFrom>, Changed<EdgeTo>)>,
-    >,
+    mut graph_messages: MessageWriter<CircuitGraphMessage>,
+    changed_edges: Query<(Entity, &EdgeFrom, &EdgeTo), Or<(Changed<EdgeFrom>, Changed<EdgeTo>)>>,
 ) {
     for (edge_entity, from, to) in changed_edges.iter() {
         // Emit connection events for both endpoints
@@ -486,10 +489,7 @@ fn detect_topology_changes(
 fn detect_property_changes(
     graph_query: CircuitGraphQuery,
     mut graph_messages: MessageWriter<CircuitGraphMessage>,
-    changed_nodes: Query<
-        CircuitNodeQueryData,
-        Or<(Changed<Transform>, Changed<GlobalTransform>)>,
-    >,
+    changed_nodes: Query<CircuitNodeQueryData, Or<(Changed<Transform>, Changed<GlobalTransform>)>>,
     changed_edges: Query<
         (Entity, &EdgeFrom, &EdgeTo),
         Or<(
@@ -563,8 +563,15 @@ fn read_propagation_messages(
 
     for message in reader.read() {
         match message {
-            CircuitGraphMessage::NodeChanged { entity, affected_neighbors: _, changes: _ }
-            | CircuitGraphMessage::NodeAdded { entity, initial_neighbors: _ } => {
+            CircuitGraphMessage::NodeChanged {
+                entity,
+                affected_neighbors: _,
+                changes: _,
+            }
+            | CircuitGraphMessage::NodeAdded {
+                entity,
+                initial_neighbors: _,
+            } => {
                 if config.propagate_node_changes {
                     let affected_nodes = match config.default_node_propagation {
                         PropagationType::ImmediateNeighbors => {
@@ -573,25 +580,28 @@ fn read_propagation_messages(
                         PropagationType::ConnectedComponent => {
                             graph_query.connected_component_undirected(*entity)
                         }
-                        PropagationType::Downstream => {
-                            graph_query.downstream_nodes(*entity)
-                        }
-                        PropagationType::Upstream => {
-                            graph_query.upstream_nodes(*entity)
-                        }
+                        PropagationType::Downstream => graph_query.downstream_nodes(*entity),
+                        PropagationType::Upstream => graph_query.upstream_nodes(*entity),
                         PropagationType::LimitedDepth { depth } => {
                             graph_query.affected_subgraph(*entity, Some(depth))
                         }
                     };
 
-                    buffer.events.push(CircuitGraphMessage::PropagationTriggered {
-                        source: *entity,
-                        affected_nodes,
-                        propagation_type: config.default_node_propagation.clone(),
-                    });
+                    buffer
+                        .events
+                        .push(CircuitGraphMessage::PropagationTriggered {
+                            source: *entity,
+                            affected_nodes,
+                            propagation_type: config.default_node_propagation.clone(),
+                        });
                 }
             }
-            CircuitGraphMessage::EdgeChanged { entity, from, to, changes: _ } => {
+            CircuitGraphMessage::EdgeChanged {
+                entity,
+                from,
+                to,
+                changes: _,
+            } => {
                 if config.propagate_edge_changes {
                     // For edges, propagate to both endpoints
                     let affected_nodes = match config.default_edge_propagation {
@@ -634,11 +644,13 @@ fn read_propagation_messages(
                         }
                     };
 
-                    buffer.events.push(CircuitGraphMessage::PropagationTriggered {
-                        source: *entity,
-                        affected_nodes,
-                        propagation_type: config.default_edge_propagation.clone(),
-                    });
+                    buffer
+                        .events
+                        .push(CircuitGraphMessage::PropagationTriggered {
+                            source: *entity,
+                            affected_nodes,
+                            propagation_type: config.default_edge_propagation.clone(),
+                        });
                 }
             }
             _ => {
@@ -670,10 +682,16 @@ fn sync_graph_nodes(
 ) {
     for message in reader.read() {
         match message {
-            CircuitGraphMessage::NodeAdded { entity, initial_neighbors: _ } => {
+            CircuitGraphMessage::NodeAdded {
+                entity,
+                initial_neighbors: _,
+            } => {
                 graph.register_node(&mut index, *entity, NodeState::new());
             }
-            CircuitGraphMessage::NodeRemoved { entity, affected_edges: _ } => {
+            CircuitGraphMessage::NodeRemoved {
+                entity,
+                affected_edges: _,
+            } => {
                 graph.unregister_node(&mut index, *entity);
             }
             _ => {}
@@ -693,10 +711,18 @@ fn sync_graph_edges(
             CircuitGraphMessage::EdgeAdded { entity, from, to } => {
                 graph.sync_edge(&mut index, *entity, *from, *to, EdgeState::new());
             }
-            CircuitGraphMessage::EdgeRemoved { entity, from: _, to: _ } => {
+            CircuitGraphMessage::EdgeRemoved {
+                entity,
+                from: _,
+                to: _,
+            } => {
                 graph.unregister_edge(&mut index, *entity);
             }
-            CircuitGraphMessage::NodeConnected { node: _, edge, neighbor: _ } => {
+            CircuitGraphMessage::NodeConnected {
+                node: _,
+                edge,
+                neighbor: _,
+            } => {
                 // Re-sync the edge when its topology changes
                 if let Ok((from, to)) = edges.get(*edge) {
                     graph.sync_edge(&mut index, *edge, from.0, to.0, EdgeState::new());

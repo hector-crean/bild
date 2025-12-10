@@ -3,7 +3,8 @@ use bevy_inspector_egui::bevy_egui::EguiPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bild_canvas::circuit::CircuitPlugin;
 use bild_canvas::circuit::graph::{
-    CircuitGraphCommandsExt, CircuitGraphManagerPlugin, CircuitGraphMessage, CircuitGraphQuery, CircuitNode, GraphEventPropagationConfig, PropagationType
+    CircuitGraphCommandsExt, CircuitGraphManagerPlugin, CircuitGraphMessage, CircuitGraphQuery,
+    CircuitNode, GraphEventPropagationConfig, PropagationType,
 };
 use bild_canvas::circuit::layer::types::LayerId;
 use camera::controller::CameraSettings;
@@ -49,7 +50,7 @@ fn main() {
         .init_resource::<Camera3dSettingsImpl>()
         // Circuit visualization plugins
         .add_plugins(PolylinePlugin)
-        .add_plugins((CircuitGraphManagerPlugin, CircuitPlugin))
+        .add_plugins((CircuitPlugin))
         .add_plugins(MeshPickingPlugin)
         .add_plugins(InteractiveMeshPlugin::<Camera3dSettingsImpl>::default())
         // Configuration for how the graph looks
@@ -58,7 +59,7 @@ fn main() {
         .add_systems(
             Update,
             (
-                log_graph_events,
+                // log_graph_events,
                 visualize_propagation,
                 handle_keyboard_input,
                 fade_highlights,
@@ -69,16 +70,16 @@ fn main() {
 
 // Configuration for stress testing
 const STRESS_TEST: bool = true;
-const NUM_NODES: usize = 50; // Adjust this to stress test different sizes
+const NUM_NODES: usize = 200; // Adjust this to stress test different sizes
 const EDGE_PROBABILITY: f64 = 0.02; // Probability of edge between any two nodes (for random graph)
-const GRID_SIZE: usize = 50; // For grid graph: creates GRID_SIZE x GRID_SIZE nodes
+const GRID_SIZE: usize = 10; // For grid graph: creates GRID_SIZE x GRID_SIZE nodes
 
 #[derive(Clone, Copy)]
 enum GraphType {
-    Small,      // Original 6-node graph
-    Random,     // Random graph with NUM_NODES nodes
-    Grid,       // Regular grid graph
-    ScaleFree,  // Scale-free network (preferential attachment)
+    Small,     // Original 6-node graph
+    Random,    // Random graph with NUM_NODES nodes
+    Grid,      // Regular grid graph
+    ScaleFree, // Scale-free network (preferential attachment)
 }
 
 fn spawn_circuit_graph(mut commands: Commands) {
@@ -94,7 +95,7 @@ fn spawn_circuit_graph(mut commands: Commands) {
     ));
 
     let graph_type = if STRESS_TEST {
-        GraphType::Grid // Change to Grid, ScaleFree, etc. to test different topologies
+        GraphType::ScaleFree // Change to Grid, ScaleFree, etc. to test different topologies
     } else {
         GraphType::Small
     };
@@ -183,17 +184,17 @@ fn spawn_random_graph(commands: &mut Commands, num_nodes: usize, edge_probabilit
 
     // Spawn nodes in a roughly spherical distribution
     let radius = (num_nodes as f32).cbrt() * 2.0; // Scale radius with cube root of node count
-    
+
     for i in 0..num_nodes {
         // Distribute nodes in 3D space
         let angle1 = (i as f32) * 2.0 * std::f32::consts::PI / (num_nodes as f32);
         let angle2 = (i as f32) * std::f32::consts::PI / (num_nodes as f32);
         let r = radius * (0.3 + 0.7 * (i as f32) / (num_nodes as f32));
-        
+
         let x = r * angle1.cos() * angle2.sin();
         let y = r * angle2.cos();
         let z = r * angle1.sin() * angle2.sin();
-        
+
         // Add some randomness to avoid perfect sphere
         let x = x + rng.gen_range(-0.5..0.5);
         let y = y + rng.gen_range(-0.5..0.5);
@@ -221,8 +222,11 @@ fn spawn_random_graph(commands: &mut Commands, num_nodes: usize, edge_probabilit
             }
         }
     }
-    
-    println!("Spawned random graph: {} nodes, {} edges", num_nodes, edge_count);
+
+    info!(
+        "Spawned random graph: {} nodes, {} edges",
+        num_nodes, edge_count
+    );
 }
 
 fn spawn_grid_graph(commands: &mut Commands, grid_size: usize) {
@@ -255,13 +259,13 @@ fn spawn_grid_graph(commands: &mut Commands, grid_size: usize) {
     for y in 0..grid_size {
         for x in 0..grid_size {
             let idx = y * grid_size + x;
-            
+
             // Connect to right neighbor
             if x < grid_size - 1 {
                 commands.spawn_edge(node_entities[idx], node_entities[idx + 1]);
                 edge_count += 1;
             }
-            
+
             // Connect to bottom neighbor
             if y < grid_size - 1 {
                 commands.spawn_edge(node_entities[idx], node_entities[idx + grid_size]);
@@ -269,16 +273,21 @@ fn spawn_grid_graph(commands: &mut Commands, grid_size: usize) {
             }
         }
     }
-    
-    println!("Spawned grid graph: {} nodes ({}x{}), {} edges", 
-             grid_size * grid_size, grid_size, grid_size, edge_count);
+
+    info!(
+        "Spawned grid graph: {} nodes ({}x{}), {} edges",
+        grid_size * grid_size,
+        grid_size,
+        grid_size,
+        edge_count
+    );
 }
 
 fn spawn_scale_free_graph(commands: &mut Commands, num_nodes: usize) {
     let mut rng = rand::thread_rng();
     let mut node_entities = Vec::with_capacity(num_nodes);
     let mut degrees = Vec::with_capacity(num_nodes);
-    
+
     let radius = (num_nodes as f32).cbrt() * 2.0;
 
     // Start with a small connected graph (3 nodes)
@@ -286,11 +295,7 @@ fn spawn_scale_free_graph(commands: &mut Commands, num_nodes: usize) {
         let angle = (i as f32) * 2.0 * std::f32::consts::PI / 3.0;
         let node = commands
             .spawn((
-                Transform::from_xyz(
-                    angle.cos() * 2.0,
-                    0.0,
-                    angle.sin() * 2.0,
-                ),
+                Transform::from_xyz(angle.cos() * 2.0, 0.0, angle.sin() * 2.0),
                 GlobalTransform::default(),
                 CircuitNode::default(),
                 LayerId(0),
@@ -300,7 +305,7 @@ fn spawn_scale_free_graph(commands: &mut Commands, num_nodes: usize) {
         node_entities.push(node);
         degrees.push(0);
     }
-    
+
     // Connect initial nodes
     if num_nodes >= 3 {
         commands.spawn_edge(node_entities[0], node_entities[1]);
@@ -317,27 +322,23 @@ fn spawn_scale_free_graph(commands: &mut Commands, num_nodes: usize) {
         let r = radius * (0.3 + 0.7 * (i as f32) / (num_nodes as f32));
         let node = commands
             .spawn((
-                Transform::from_xyz(
-                    r * angle.cos(),
-                    rng.gen_range(-1.0..1.0),
-                    r * angle.sin(),
-                ),
+                Transform::from_xyz(r * angle.cos(), rng.gen_range(-1.0..1.0), r * angle.sin()),
                 GlobalTransform::default(),
                 CircuitNode::default(),
                 LayerId(0),
                 Draggable3d::default(),
             ))
             .id();
-        
+
         // Connect to existing nodes with probability proportional to their degree
         let total_degree: usize = degrees.iter().sum();
         let connections = rng.gen_range(1..=3.min(i)); // Connect to 1-3 existing nodes
-        
+
         for _ in 0..connections {
             let mut target_idx = 0;
             let mut cumulative = 0;
             let threshold = rng.gen_range(0..total_degree);
-            
+
             for (idx, &deg) in degrees.iter().enumerate() {
                 cumulative += deg + 1; // +1 to ensure all nodes have some chance
                 if cumulative > threshold {
@@ -345,17 +346,20 @@ fn spawn_scale_free_graph(commands: &mut Commands, num_nodes: usize) {
                     break;
                 }
             }
-            
+
             commands.spawn_edge(node_entities[target_idx], node);
             degrees[target_idx] += 1;
         }
-        
+
         node_entities.push(node);
         degrees.push(connections);
     }
-    
+
     let total_edges: usize = degrees.iter().sum::<usize>() / 2;
-    println!("Spawned scale-free graph: {} nodes, ~{} edges", num_nodes, total_edges);
+    info!(
+        "Spawned scale-free graph: {} nodes, ~{} edges",
+        num_nodes, total_edges
+    );
 }
 
 // ============================================================================
@@ -388,17 +392,23 @@ fn log_graph_events(
 ) {
     for message in reader.read() {
         match message {
-            CircuitGraphMessage::NodeAdded { entity, initial_neighbors } => {
+            CircuitGraphMessage::NodeAdded {
+                entity,
+                initial_neighbors,
+            } => {
                 stats.node_added_count += 1;
-                println!(
+                info!(
                     "✓ NodeAdded: entity={:?}, neighbors={}",
                     entity,
                     initial_neighbors.len()
                 );
             }
-            CircuitGraphMessage::NodeRemoved { entity, affected_edges } => {
+            CircuitGraphMessage::NodeRemoved {
+                entity,
+                affected_edges,
+            } => {
                 stats.node_removed_count += 1;
-                println!(
+                info!(
                     "✗ NodeRemoved: entity={:?}, affected_edges={}",
                     entity,
                     affected_edges.len()
@@ -406,11 +416,17 @@ fn log_graph_events(
             }
             CircuitGraphMessage::EdgeAdded { entity, from, to } => {
                 stats.edge_added_count += 1;
-                println!("+ EdgeAdded: edge={:?}, from={:?}, to={:?}", entity, from, to);
+                info!(
+                    "+ EdgeAdded: edge={:?}, from={:?}, to={:?}",
+                    entity, from, to
+                );
             }
             CircuitGraphMessage::EdgeRemoved { entity, from, to } => {
                 stats.edge_removed_count += 1;
-                println!("- EdgeRemoved: edge={:?}, from={:?}, to={:?}", entity, from, to);
+                info!(
+                    "- EdgeRemoved: edge={:?}, from={:?}, to={:?}",
+                    entity, from, to
+                );
             }
             CircuitGraphMessage::NodeChanged {
                 entity,
@@ -418,14 +434,21 @@ fn log_graph_events(
                 changes,
             } => {
                 stats.node_changed_count += 1;
-                println!(
+                info!(
                     "↻ NodeChanged: entity={:?}, affected_neighbors={}, transform_changed={}",
-                    entity, affected_neighbors.len(), changes.transform_changed
+                    entity,
+                    affected_neighbors.len(),
+                    changes.transform_changed
                 );
             }
-            CircuitGraphMessage::EdgeChanged { entity, from, to, changes } => {
+            CircuitGraphMessage::EdgeChanged {
+                entity,
+                from,
+                to,
+                changes,
+            } => {
                 stats.edge_changed_count += 1;
-                println!(
+                info!(
                     "↻ EdgeChanged: edge={:?}, from={:?}, to={:?}, color_changed={}",
                     entity, from, to, changes.color_changed
                 );
@@ -436,19 +459,29 @@ fn log_graph_events(
                 propagation_type,
             } => {
                 stats.propagation_count += 1;
-                println!(
+                info!(
                     "🌊 PropagationTriggered: source={:?}, affected_nodes={}, type={:?}",
-                    source, affected_nodes.len(), propagation_type
+                    source,
+                    affected_nodes.len(),
+                    propagation_type
                 );
             }
-            CircuitGraphMessage::NodeConnected { node, edge, neighbor } => {
-                println!(
+            CircuitGraphMessage::NodeConnected {
+                node,
+                edge,
+                neighbor,
+            } => {
+                info!(
                     "🔗 NodeConnected: node={:?}, edge={:?}, neighbor={:?}",
                     node, edge, neighbor
                 );
             }
-            CircuitGraphMessage::NodeDisconnected { node, edge, neighbor } => {
-                println!(
+            CircuitGraphMessage::NodeDisconnected {
+                node,
+                edge,
+                neighbor,
+            } => {
+                info!(
                     "🔌 NodeDisconnected: node={:?}, edge={:?}, neighbor={:?}",
                     node, edge, neighbor
                 );
@@ -472,7 +505,7 @@ fn visualize_propagation(
     // Create a highlight material (bright green/yellow)
     let highlight_material = materials.add(StandardMaterial {
         base_color: Color::srgb(1.0, 0.8, 0.2), // Bright yellow-orange
-        emissive: LinearRgba::new(0.5, 0.4, 0.1, 1.0),   // Glow effect
+        emissive: LinearRgba::new(0.5, 0.4, 0.1, 1.0), // Glow effect
         metallic: 0.3,
         perceptual_roughness: 0.5,
         ..default()
@@ -489,8 +522,10 @@ fn visualize_propagation(
                 // Check if node exists
                 if nodes.get(*node_entity).is_ok() {
                     // Apply highlight material
-                    commands.entity(*node_entity).insert(MeshMaterial3d(highlight_material.clone()));
-                    
+                    commands
+                        .entity(*node_entity)
+                        .insert(MeshMaterial3d(highlight_material.clone()));
+
                     // Add highlight component with timestamp
                     commands.entity(*node_entity).insert(PropagationHighlight {
                         start_time: time.elapsed_secs(),
@@ -520,26 +555,28 @@ fn fade_highlights(
     });
 
     let current_time = time.elapsed_secs();
-    
+
     for (entity, highlight) in nodes.iter_mut() {
         let elapsed = current_time - highlight.start_time;
         if elapsed >= highlight.duration {
             // Fade complete, restore default material
-            commands.entity(entity).insert(MeshMaterial3d(default_material.clone()));
+            commands
+                .entity(entity)
+                .insert(MeshMaterial3d(default_material.clone()));
             commands.entity(entity).remove::<PropagationHighlight>();
         } else {
             // Fade between highlight and default
             let fade_factor = 1.0 - (elapsed / highlight.duration);
             let highlight_color = LinearRgba::new(1.0, 0.8, 0.2, 1.0);
             let default_color = LinearRgba::new(0.8, 0.8, 0.9, 1.0);
-            
+
             let faded_color = LinearRgba::new(
                 highlight_color.red * fade_factor + default_color.red * (1.0 - fade_factor),
                 highlight_color.green * fade_factor + default_color.green * (1.0 - fade_factor),
                 highlight_color.blue * fade_factor + default_color.blue * (1.0 - fade_factor),
                 1.0,
             );
-            
+
             let faded_material = materials.add(StandardMaterial {
                 base_color: faded_color.into(),
                 emissive: LinearRgba::new(0.5, 0.4, 0.1, 1.0) * fade_factor,
@@ -547,8 +584,10 @@ fn fade_highlights(
                 perceptual_roughness: 0.5,
                 ..default()
             });
-            
-            commands.entity(entity).insert(MeshMaterial3d(faded_material));
+
+            commands
+                .entity(entity)
+                .insert(MeshMaterial3d(faded_material));
         }
     }
 }
@@ -569,7 +608,7 @@ fn handle_keyboard_input(
             if let Some(&random_node) = node_entities.choose(&mut rng) {
                 // Manually trigger a NodeChanged event to demonstrate propagation
                 let affected_neighbors = graph_query.affected_neighbors(random_node);
-                
+
                 graph_messages.write(CircuitGraphMessage::NodeChanged {
                     entity: random_node,
                     affected_neighbors: affected_neighbors.clone(),
@@ -579,38 +618,42 @@ fn handle_keyboard_input(
                         layer_id_changed: false,
                     },
                 });
-                
-                println!("🎯 Triggered propagation from node {:?} ({} neighbors)", random_node, affected_neighbors.len());
+
+                info!(
+                    "🎯 Triggered propagation from node {:?} ({} neighbors)",
+                    random_node,
+                    affected_neighbors.len()
+                );
             }
         }
     }
-    
+
     // Number keys: Switch propagation modes
     if keyboard_input.just_pressed(KeyCode::Digit1) {
         config.default_node_propagation = PropagationType::ImmediateNeighbors;
-        println!("📊 Propagation mode: ImmediateNeighbors");
+        info!("📊 Propagation mode: ImmediateNeighbors");
     }
     if keyboard_input.just_pressed(KeyCode::Digit2) {
         config.default_node_propagation = PropagationType::ConnectedComponent;
-        println!("📊 Propagation mode: ConnectedComponent");
+        info!("📊 Propagation mode: ConnectedComponent");
     }
     if keyboard_input.just_pressed(KeyCode::Digit3) {
         config.default_node_propagation = PropagationType::Downstream;
-        println!("📊 Propagation mode: Downstream");
+        info!("📊 Propagation mode: Downstream");
     }
     if keyboard_input.just_pressed(KeyCode::Digit4) {
         config.default_node_propagation = PropagationType::Upstream;
-        println!("📊 Propagation mode: Upstream");
+        info!("📊 Propagation mode: Upstream");
     }
     if keyboard_input.just_pressed(KeyCode::Digit5) {
         config.default_node_propagation = PropagationType::LimitedDepth { depth: 2 };
-        println!("📊 Propagation mode: LimitedDepth (depth=2)");
+        info!("📊 Propagation mode: LimitedDepth (depth=2)");
     }
-    
+
     // Toggle propagation on/off
     if keyboard_input.just_pressed(KeyCode::KeyP) {
         config.propagate_node_changes = !config.propagate_node_changes;
-        println!("🔛 Propagation enabled: {}", config.propagate_node_changes);
+        info!("🔛 Propagation enabled: {}", config.propagate_node_changes);
     }
 }
 

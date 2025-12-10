@@ -14,12 +14,23 @@ pub mod solver;
 
 use bevy::prelude::*;
 
-use crate::circuit::{graph::{EdgeTransformPropagatePlugin, render::CircuitGraphRenderPlugin}, solver::CircuitSolverPlugin};
+use crate::circuit::{
+    graph::{
+        CircuitGraphManagerPlugin, EdgeTransformPropagatePlugin,
+        edge_position_update::EdgePositionUpdatePlugin, render::CircuitGraphRenderPlugin,
+    },
+    solver::CircuitSolverPlugin,
+};
 
 pub struct CircuitPlugin;
 
 impl Plugin for CircuitPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((EdgeTransformPropagatePlugin, CircuitGraphRenderPlugin));
+        app.add_plugins((
+            CircuitGraphManagerPlugin,
+            EdgeTransformPropagatePlugin,
+            // EdgePositionUpdatePlugin,
+            CircuitGraphRenderPlugin,
+        ));
     }
 }

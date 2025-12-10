@@ -12,19 +12,44 @@ use std::{f32::consts::FRAC_PI_2, ops::RangeInclusive};
 #[derive(Default)]
 pub struct OrbitCameraControllerPlugin<T: CameraSettings>(pub T);
 
+/// System sets for camera controller ordering
+#[derive(SystemSet, Clone, Debug, Hash, PartialEq, Eq)]
+pub enum CameraControllerSystemSet {
+    /// Input handling (reads pointer/scroll events)
+    InputHandling,
+    /// Process camera input events
+    ProcessInput,
+    /// Update camera transform (runs last, after all interactions)
+    UpdateTransform,
+}
+
 impl<T: CameraSettings + Send + Sync + 'static> Plugin for OrbitCameraControllerPlugin<T> {
     fn build(&self, app: &mut App) {
         app.init_resource::<T>()
             .add_message::<CameraInputEvent>()
-            .add_systems(
+            .configure_sets(
                 Update,
                 (
-                    Self::handle_pointer_input,
-                    Self::handle_scroll_input,
-                    Self::process_camera_input,
-                    Self::update_camera_transform,
-                )
+                    CameraControllerSystemSet::InputHandling,
+                    CameraControllerSystemSet::ProcessInput
+                        .after(CameraControllerSystemSet::InputHandling),
+                ),
+            )
+            .configure_sets(PostUpdate, (CameraControllerSystemSet::UpdateTransform,))
+            .add_systems(
+                Update,
+                (Self::handle_pointer_input, Self::handle_scroll_input)
                     .chain()
+                    .in_set(CameraControllerSystemSet::InputHandling),
+            )
+            .add_systems(
+                Update,
+                Self::process_camera_input.in_set(CameraControllerSystemSet::ProcessInput),
+            )
+            .add_systems(
+                PostUpdate,
+                Self::update_camera_transform
+                    .in_set(CameraControllerSystemSet::UpdateTransform)
                     .run_if(run_criteria::<T>),
             );
     }
@@ -103,7 +128,6 @@ impl Default for OrbitCameraController {
 impl OrbitCameraController {
     pub fn new(distance: f32, center: Vec3, initial_transform: Transform) -> Self {
         // Calculate initial angles from transform
-        let forward = initial_transform.forward();
         let to_center = (center - initial_transform.translation).normalize();
 
         let yaw = (-to_center.x).atan2(-to_center.z);

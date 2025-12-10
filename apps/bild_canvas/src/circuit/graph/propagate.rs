@@ -1,12 +1,13 @@
 use std::marker::PhantomData;
 
-use bevy::prelude::*;
 use bevy::ecs::query::QueryFilter;
+use bevy::prelude::*;
 
 use super::components::{
-    CircuitNode, EdgeFrom, EdgeTo, IncomingEdges, OutgoingEdges,
-    EdgeStartTransform, EdgeEndTransform,
+    CircuitNode, EdgeEndTransform, EdgeFrom, EdgeStartTransform, EdgeTo, IncomingEdges,
+    OutgoingEdges,
 };
+use super::queries::CircuitGraphQuery;
 
 /// Plugin to automatically propagate a component value from nodes to all connected edges.
 ///
@@ -27,10 +28,7 @@ use super::components::{
 /// You should be sure to schedule your logic relative to this set: making changes
 /// that modify component values before this logic, and reading the propagated
 /// values after it.
-pub struct GraphPropagatePlugin<
-    C: Component + Clone + PartialEq,
-    F: QueryFilter = (),
-> {
+pub struct GraphPropagatePlugin<C: Component + Clone + PartialEq, F: QueryFilter = ()> {
     _marker: PhantomData<fn() -> (C, F)>,
 }
 
@@ -145,13 +143,14 @@ pub fn update_source<C: Component + Clone + PartialEq, F: QueryFilter>(
 }
 
 /// Propagate `Inherited::<C>` from nodes to their connected edges
-/// 
+///
 /// By default propagates to both outgoing and incoming edges.
 /// For direction-aware propagation, use `propagate_to_edges_directional` instead.
 pub fn propagate_to_edges<C: Component + Clone + PartialEq, F: QueryFilter>(
     mut commands: Commands,
+    graph_query: CircuitGraphQuery,
     changed_nodes: Query<
-        (Entity, &Inherited<C>, &OutgoingEdges, &IncomingEdges),
+        (Entity, &Inherited<C>),
         (
             Changed<Inherited<C>>,
             With<CircuitNode>,
@@ -159,10 +158,7 @@ pub fn propagate_to_edges<C: Component + Clone + PartialEq, F: QueryFilter>(
             F,
         ),
     >,
-    all_nodes: Query<
-        (Entity, Option<&Inherited<C>>, &OutgoingEdges, &IncomingEdges),
-        (With<CircuitNode>, F),
-    >,
+    all_nodes: Query<(Entity, Option<&Inherited<C>>), (With<CircuitNode>, F)>,
     edges: Query<(Entity, &EdgeFrom, &EdgeTo), (With<EdgeFrom>, With<EdgeTo>)>,
     mut removed: RemovedComponents<Inherited<C>>,
 ) {
@@ -170,14 +166,15 @@ pub fn propagate_to_edges<C: Component + Clone + PartialEq, F: QueryFilter>(
     let mut edges_to_update: Vec<(Entity, Option<Inherited<C>>)> = Vec::new();
 
     // Handle changed nodes - propagate to their connected edges (both directions)
-    for (_node_entity, inherited, outgoing, incoming) in &changed_nodes {
+    for (node_entity, inherited) in &changed_nodes {
+        // Use relationship queries for efficient edge lookup
         // Add all outgoing edges
-        for edge_entity in outgoing.iter() {
+        for edge_entity in graph_query.outgoing_edges(node_entity) {
             edges_to_update.push((edge_entity, Some(inherited.clone())));
         }
 
         // Add all incoming edges
-        for edge_entity in incoming.iter() {
+        for edge_entity in graph_query.incoming_edges(node_entity) {
             edges_to_update.push((edge_entity, Some(inherited.clone())));
         }
     }
@@ -193,11 +190,15 @@ pub fn propagate_to_edges<C: Component + Clone + PartialEq, F: QueryFilter>(
             // If this edge was connected to the removed node, check if it should still have Inherited
             if from_node == removed_node || to_node == removed_node {
                 // Check if the other endpoint still has Inherited
-                let other_node = if from_node == removed_node { to_node } else { from_node };
+                let other_node = if from_node == removed_node {
+                    to_node
+                } else {
+                    from_node
+                };
                 let should_keep = all_nodes
                     .get(other_node)
                     .ok()
-                    .and_then(|(_, inherited, _, _)| inherited.cloned())
+                    .and_then(|(_, inherited)| inherited.cloned())
                     .is_some();
 
                 if !should_keep {
@@ -246,10 +247,7 @@ pub fn propagate_new_edges<C: Component + Clone + PartialEq, F: QueryFilter>(
         (Entity, &EdgeFrom, &EdgeTo),
         (With<EdgeFrom>, With<EdgeTo>, Without<Inherited<C>>),
     >,
-    nodes: Query<
-        (Entity, &Inherited<C>),
-        (With<CircuitNode>, Without<PropagateOver<C>>, F),
-    >,
+    nodes: Query<(Entity, &Inherited<C>), (With<CircuitNode>, Without<PropagateOver<C>>, F)>,
 ) {
     for (edge_entity, edge_from, edge_to) in &new_edges {
         // Prefer the value from the "from" node, but fall back to "to" node
@@ -320,36 +318,34 @@ impl Plugin for EdgeTransformPropagatePlugin {
 pub struct EdgeTransformPropagateSet;
 
 /// Propagate Transform from nodes to connected edges (direction-aware)
-/// 
+///
 /// Optimized version that:
-/// - Removes redundant edge queries (relationship already tells us which edges connect)
+/// - Uses relationship queries for efficient edge lookup (no need to query components)
 /// - Batches updates for better performance
 /// - Only processes nodes with Changed<Transform> to avoid unnecessary work
 fn propagate_node_transforms_to_edges(
     mut commands: Commands,
-    changed_nodes: Query<
-        (Entity, &Transform, &OutgoingEdges, &IncomingEdges),
-        (Changed<Transform>, With<CircuitNode>),
-    >,
+    graph_query: CircuitGraphQuery,
+    changed_nodes: Query<(Entity, &Transform), (Changed<Transform>, With<CircuitNode>)>,
 ) {
     // Collect all updates first, then apply in batch
     // Use separate vectors since EdgeStartTransform and EdgeEndTransform are different types
     let mut start_updates: Vec<(Entity, EdgeStartTransform)> = Vec::new();
     let mut end_updates: Vec<(Entity, EdgeEndTransform)> = Vec::new();
-    
-    for (_node_entity, transform, outgoing, incoming) in &changed_nodes {
-        // OutgoingEdges already contains edges where this node is the "from" node
-        // No need to query and verify - the relationship system guarantees this
-        for edge_entity in outgoing.iter() {
+
+    for (node_entity, transform) in &changed_nodes {
+        // Use relationship queries for efficient edge lookup
+        // Outgoing edges: this node is the "from" node
+        for edge_entity in graph_query.outgoing_edges(node_entity) {
             start_updates.push((edge_entity, EdgeStartTransform(*transform)));
         }
 
-        // IncomingEdges already contains edges where this node is the "to" node
-        for edge_entity in incoming.iter() {
+        // Incoming edges: this node is the "to" node
+        for edge_entity in graph_query.incoming_edges(node_entity) {
             end_updates.push((edge_entity, EdgeEndTransform(*transform)));
         }
     }
-    
+
     // Apply all updates in batch
     for (edge_entity, transform_component) in start_updates {
         commands.entity(edge_entity).insert(transform_component);
@@ -374,7 +370,7 @@ fn propagate_transforms_to_new_edges(
 ) {
     for (edge_entity, edge_from, edge_to) in &new_edges {
         let mut cmd = commands.entity(edge_entity);
-        
+
         // Get transform from the "from" node
         if let Ok(from_transform) = nodes.get(edge_from.0) {
             cmd.insert(EdgeStartTransform(*from_transform));
@@ -386,4 +382,3 @@ fn propagate_transforms_to_new_edges(
         }
     }
 }
-

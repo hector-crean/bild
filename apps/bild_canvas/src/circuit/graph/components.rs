@@ -11,13 +11,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Component, Debug, Clone, Reflect, Serialize, Deserialize, Default)]
 #[reflect(Component, Serialize, Deserialize)]
 pub enum CircuitEdge {
-	#[default]
+    #[default]
     WireSegment,
-	Via
+    Via,
 }
 
 // Core junctions
-#[derive(Component, Debug, Clone, Reflect, Default)]
+#[derive(Component, Debug, Clone, Reflect, Serialize, Deserialize, Default)]
+#[reflect(Component, Serialize, Deserialize)]
 #[require(Transform, GlobalTransform, IncomingEdges, OutgoingEdges)]
 pub enum CircuitNode {
     #[default]
@@ -42,16 +43,26 @@ pub enum PortDirection {
 
 // Separate annotation components (attach to CircuitNode entities)
 #[derive(Component, Debug, Clone)]
-pub struct NetLabel { pub name: String, pub scope: NetScope }
+pub struct NetLabel {
+    pub name: String,
+    pub scope: NetScope,
+}
 
 #[derive(Component, Debug, Clone)]
-pub struct GlobalLabel { pub name: String }
+pub struct GlobalLabel {
+    pub name: String,
+}
 
 #[derive(Component, Debug, Clone)]
-pub struct Port { pub name: String, pub direction: PortDirection }
+pub struct Port {
+    pub name: String,
+    pub direction: PortDirection,
+}
 
 #[derive(Component, Debug, Clone)]
-pub struct TestPoint { pub label: Option<String> }
+pub struct TestPoint {
+    pub label: Option<String>,
+}
 
 #[derive(Component, Debug, Clone)]
 pub struct NoConnect;
@@ -98,7 +109,9 @@ pub struct EdgeEndTransform(pub Transform);
 pub struct OutgoingEdges(Vec<Entity>);
 
 impl OutgoingEdges {
-	pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ { self.0.iter().copied() }
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
+        self.0.iter().copied()
+    }
 }
 
 /// Reverse index: all edges that end at a node (incoming).
@@ -107,5 +120,7 @@ impl OutgoingEdges {
 pub struct IncomingEdges(Vec<Entity>);
 
 impl IncomingEdges {
-	pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ { self.0.iter().copied() }
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = Entity> + '_ {
+        self.0.iter().copied()
+    }
 }

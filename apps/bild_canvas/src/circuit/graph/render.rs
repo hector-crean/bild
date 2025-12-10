@@ -1,18 +1,40 @@
 use bevy::prelude::*;
 
-use super::components::{
-    CircuitNode, EdgeStartTransform, EdgeEndTransform,
-};
+use super::components::{CircuitNode, EdgeEndTransform, EdgeStartTransform};
 
 pub struct CircuitGraphRenderPlugin;
 
 impl Plugin for CircuitGraphRenderPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<BatchedEdgeMesh>()
-            .add_systems(Update, (
-                spawn_node_meshes,
-                update_batched_edge_mesh,
-            ).chain());
+            .init_resource::<EdgeArrowConfig>()
+            .add_systems(
+                Update,
+                (
+                    spawn_node_meshes,
+                    update_batched_edge_mesh,
+                    draw_edge_arrows,
+                )
+                    .chain(),
+            );
+    }
+}
+
+/// Configuration for edge arrow rendering
+#[derive(Resource)]
+pub struct EdgeArrowConfig {
+    pub enabled: bool,
+    pub arrow_size: f32,
+    pub arrow_offset: f32, // Distance from end node to start of arrow
+}
+
+impl Default for EdgeArrowConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            arrow_size: 1.5,
+            arrow_offset: 0.1,
+        }
     }
 }
 
@@ -75,11 +97,14 @@ fn update_batched_edge_mesh(
         (&EdgeStartTransform, &EdgeEndTransform),
         Or<(Changed<EdgeStartTransform>, Changed<EdgeEndTransform>)>,
     >,
-    all_edges: Query<(&EdgeStartTransform, &EdgeEndTransform), (With<EdgeStartTransform>, With<EdgeEndTransform>)>,
+    all_edges: Query<
+        (&EdgeStartTransform, &EdgeEndTransform),
+        (With<EdgeStartTransform>, With<EdgeEndTransform>),
+    >,
 ) {
     // Check if we need to update (any edge changed or mesh doesn't exist)
     let needs_update = !edges.is_empty() || batched_mesh.mesh_handle.is_none();
-    
+
     if !needs_update {
         return;
     }
@@ -93,11 +118,11 @@ fn update_batched_edge_mesh(
         // Add two vertices for this edge
         positions.push(start_transform.0.translation.to_array());
         positions.push(end_transform.0.translation.to_array());
-        
+
         // Add indices for the line segment
         indices.push(current_index);
         indices.push(current_index + 1);
-        
+
         current_index += 2;
     }
 
@@ -114,47 +139,80 @@ fn update_batched_edge_mesh(
 
     // Create a single batched mesh for all edges using LineList topology
     // This allows us to render all edges in a single draw call
-    use bevy::render::render_resource::PrimitiveTopology;
     use bevy::asset::RenderAssetUsages;
     use bevy::mesh::Indices;
-    
-    let batched_mesh_data = Mesh::new(
-        PrimitiveTopology::LineList,
-        RenderAssetUsages::default(),
-    )
-    .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-    .with_inserted_indices(Indices::U32(indices));
-    
+    use bevy::render::render_resource::PrimitiveTopology;
+
+    let batched_mesh_data = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default())
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+        .with_inserted_indices(Indices::U32(indices));
+
     let mesh_handle = meshes.add(batched_mesh_data);
     batched_mesh.edge_count = all_edges.iter().len();
-    
+
     // Get or create the shared material
-    let edge_material = batched_mesh.material_handle.get_or_insert_with(|| {
-        materials.add(StandardMaterial {
-            base_color: Color::srgb(0.5, 0.5, 0.5),
-            unlit: true, // Lines typically don't need lighting
-            ..default()
+    let edge_material = batched_mesh
+        .material_handle
+        .get_or_insert_with(|| {
+            materials.add(StandardMaterial {
+                base_color: Color::srgb(0.5, 0.5, 0.5),
+                unlit: true, // Lines typically don't need lighting
+                ..default()
+            })
         })
-    }).clone();
+        .clone();
 
     // Update or create the batched edge entity
     if let Some(existing_entity) = batched_mesh.entity {
         // Update existing entity's mesh
-        commands.entity(existing_entity).insert(Mesh3d(mesh_handle.clone()));
+        commands
+            .entity(existing_entity)
+            .insert(Mesh3d(mesh_handle.clone()));
     } else {
         // Create new batched edge entity
-        let entity = commands.spawn((
-            Mesh3d(mesh_handle.clone()),
-            MeshMaterial3d(edge_material),
-            BatchedEdgeRenderer, // Marker component
-        )).id();
-        
+        let entity = commands
+            .spawn((
+                Mesh3d(mesh_handle.clone()),
+                MeshMaterial3d(edge_material),
+                BatchedEdgeRenderer, // Marker component
+            ))
+            .id();
+
         batched_mesh.entity = Some(entity);
     }
-    
+
     batched_mesh.mesh_handle = Some(mesh_handle);
 }
 
 /// Marker component for the batched edge renderer entity
 #[derive(Component)]
 struct BatchedEdgeRenderer;
+
+/// Draw directional arrows for edges using gizmos
+fn draw_edge_arrows(
+    mut gizmos: Gizmos,
+    config: Res<EdgeArrowConfig>,
+    edges: Query<
+        (&EdgeStartTransform, &EdgeEndTransform),
+        (With<EdgeStartTransform>, With<EdgeEndTransform>),
+    >,
+) {
+    if !config.enabled {
+        return;
+    }
+
+    for (start_transform, end_transform) in edges.iter() {
+        let start = start_transform.0.translation;
+        let end = end_transform.0.translation;
+
+        // Calculate direction vector
+        let direction = (end - start).normalize();
+
+        // Position arrow near the end, but not exactly at the end to avoid overlap with node
+        let arrow_start = end - direction * (config.arrow_offset + config.arrow_size * 0.5);
+        let arrow_end = end - direction * config.arrow_offset;
+
+        // Draw arrow pointing from source to target
+        gizmos.arrow(arrow_start, arrow_end, Color::srgb(0.5, 0.5, 0.5));
+    }
+}

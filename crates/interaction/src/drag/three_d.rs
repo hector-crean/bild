@@ -1,9 +1,8 @@
-
-use bevy::prelude::*;
-use camera::controller::CameraSettings;
 use bevy::ecs::error::BevyError;
-use std::f32::INFINITY;
+use bevy::prelude::*;
 use bitflags::bitflags;
+use camera::controller::CameraSettings;
+use std::f32::INFINITY;
 
 bitflags! {
     // Attributes can be applied to flags types
@@ -15,8 +14,6 @@ bitflags! {
         const Scale = 1 << 2;
     }
 }
-
-
 
 #[derive(Resource)]
 pub struct DragController3dSettings {
@@ -213,19 +210,27 @@ fn run_criteria<T: CameraSettings>(_mode: Res<T>) -> bool {
     true
 }
 
-
 impl<T: CameraSettings + Send + Sync + 'static> DragTransform3dPlugin<T> {
-    fn sync_drag_system(mut commands: Commands, draggable_query: Query<Entity, Added<Draggable3d>>) {
+    fn sync_drag_system(
+        mut commands: Commands,
+        draggable_query: Query<Entity, Added<Draggable3d>>,
+    ) {
         for entity in draggable_query.iter() {
-            commands.entity(entity).observe(Self::on_drag_start.pipe(|result: In<Result>| {
-                let _ = result.0.inspect_err(|err| info!("captured error: {err}"));
-            }));
-            commands.entity(entity).observe(Self::on_drag.pipe(|result: In<Result>| {
-                let _ = result.0.inspect_err(|err| info!("captured error: {err}"));
-            }));
-            commands.entity(entity).observe(Self::on_drag_end.pipe(|result: In<Result>| {
-                let _ = result.0.inspect_err(|err| info!("captured error: {err}"));
-            }));
+            commands
+                .entity(entity)
+                .observe(Self::on_drag_start.pipe(|result: In<Result>| {
+                    let _ = result.0.inspect_err(|err| info!("captured error: {err}"));
+                }));
+            commands
+                .entity(entity)
+                .observe(Self::on_drag.pipe(|result: In<Result>| {
+                    let _ = result.0.inspect_err(|err| info!("captured error: {err}"));
+                }));
+            commands
+                .entity(entity)
+                .observe(Self::on_drag_end.pipe(|result: In<Result>| {
+                    let _ = result.0.inspect_err(|err| info!("captured error: {err}"));
+                }));
         }
     }
     fn on_drag_start(
